@@ -1,12 +1,5 @@
-import { supabase } from '../lib/supabase'
+import { redirect } from 'next/navigation'
 
-export default async function Home() {
-  const { data, error } = await supabase.from('test').select('*')
-  
-  return (
-    <main>
-      <h1>Harbour</h1>
-      <p>Supabase connected: {error ? 'No — ' + error.message : 'Yes'}</p>
-    </main>
-  )
+export default function Home() {
+  redirect('/auth/login')
 }
