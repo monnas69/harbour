@@ -44,21 +44,24 @@ export async function POST(request) {
     const result = await runPython(enginePath, inputs, config)
 
     // ── SAVE FORECAST TO DATABASE
-    const { error: saveError } = await supabase
-      .from('forecasts')
-      .insert({
-        user_id: user.id,
-        name: `${inputs.name}'s forecast`,
-        inputs: inputs,
-        outputs: result,
-        config_version: new Date().toISOString(),
-      })
+    const { data: saved, error: saveError } = await supabase
+  .from('forecasts')
+  .insert({
+    user_id: user.id,
+    name: `${inputs.name}'s forecast`,
+    inputs: inputs,
+    outputs: result,
+    config_version: new Date().toISOString(),
+  })
+  .select('id')
+  .single()
 
-    if (saveError) {
-      console.error('Save error:', saveError)
-    }
+if (saveError) {
+  console.error('Save error:', saveError)
+  return NextResponse.json({ error: 'Could not save forecast' }, { status: 500 })
+}
 
-    return NextResponse.json(result)
+return NextResponse.json({ id: saved.id, ...result })
 
   } catch (err) {
     console.error('Forecast error:', err)
