@@ -4,11 +4,11 @@ sys.path.insert(0, '.')
 from engine.forecast import run_forecast
 
 inputs = {
-    "age": 58,
-    "superBal": 420000,
+    "current_age": 58,
+    "super_balance": 420000,
     "salary": 80000,
-    "spending": 51000,
-    "retireAge": 65
+    "annual_spending": 51000,
+    "retirement_age": 65
 }
 
 config = {
