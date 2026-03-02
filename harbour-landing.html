@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harbour — Retirement Forecasting for Australians</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --navy:       #0d1f35;
+    --navy-mid:   #142944;
+    --navy-light: #1e3a5f;
+    --gold:       #c9a84c;
+    --gold-light: #e8cc88;
+    --gold-dim:   rgba(201,168,76,0.12);
+    --cream:      #f5f0e8;
+    --text-muted: #8a9bb0;
+    --green:      #5b9e6e;
+    --border:     rgba(201,168,76,0.12);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--cream);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 60px;
+    border-bottom: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(13,31,53,0.96);
+    backdrop-filter: blur(12px);
+    transition: padding 0.3s;
+  }
+
+  nav.scrolled { padding: 16px 60px; }
+
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .logo-mark svg { width: 30px; height: 30px; }
+  .logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 600;
+    color: var(--cream); letter-spacing: 0.04em;
+  }
+
+  .nav-right { display: flex; align-items: center; gap: 28px; }
+  .nav-link {
+    font-size: 13px; color: var(--text-muted);
+    text-decoration: none; letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+  .nav-link:hover { color: var(--cream); }
+
+  .btn-nav {
+    background: var(--gold); border: none; color: var(--navy);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    padding: 10px 24px; border-radius: 3px; cursor: pointer;
+    letter-spacing: 0.03em; text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn-nav:hover { background: var(--gold-light); box-shadow: 0 6px 20px rgba(201,168,76,0.3); }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 120px 60px 80px;
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+  }
+
+  .hero-eyebrow {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 32px;
+    opacity: 0; animation: fade-up 0.7s 0.2s ease forwards;
+  }
+
+  .eyebrow-line {
+    width: 32px; height: 1px;
+    background: var(--gold); opacity: 0.6;
+  }
+
+  .eyebrow-text {
+    font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--gold);
+    font-weight: 500;
+  }
+
+  .hero-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(48px, 7vw, 88px);
+    font-weight: 700; line-height: 1.05;
+    color: var(--cream); margin-bottom: 28px;
+    max-width: 780px;
+    opacity: 0; animation: fade-up 0.7s 0.35s ease forwards;
+  }
+
+  .hero-headline em {
+    font-style: italic; color: var(--gold);
+  }
+
+  .hero-subtext {
+    font-size: 18px; font-weight: 300;
+    color: var(--text-muted); line-height: 1.65;
+    max-width: 540px; margin-bottom: 48px;
+    opacity: 0; animation: fade-up 0.7s 0.5s ease forwards;
+  }
+
+  .hero-subtext strong { color: var(--cream); font-weight: 400; }
+
+  .hero-cta {
+    display: flex; align-items: center; gap: 20px;
+    opacity: 0; animation: fade-up 0.7s 0.65s ease forwards;
+  }
+
+  .btn-primary {
+    background: var(--gold); border: none; color: var(--navy);
+    font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 500;
+    padding: 17px 44px; border-radius: 3px; cursor: pointer;
+    letter-spacing: 0.03em; text-decoration: none;
+    transition: all 0.25s; display: inline-flex; align-items: center; gap: 10px;
+  }
+
+  .btn-primary:hover {
+    background: var(--gold-light);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(201,168,76,0.35);
+  }
+
+  .btn-primary svg { transition: transform 0.2s; }
+  .btn-primary:hover svg { transform: translateX(3px); }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold);
+    font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 400;
+    padding: 16px 32px; border-radius: 3px; cursor: pointer;
+    letter-spacing: 0.02em; text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn-ghost:hover { background: var(--gold-dim); border-color: var(--gold); }
+
+  .hero-note {
+    font-size: 12px; color: rgba(138,155,176,0.6);
+    margin-top: 16px;
+    opacity: 0; animation: fade-up 0.7s 0.8s ease forwards;
+  }
+
+  /* ─── FORECAST PREVIEW (hero right side) ─── */
+  .hero-layout {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 80px; align-items: center;
+  }
+
+  .hero-left {}
+  .hero-right {
+    opacity: 0; animation: fade-up 0.8s 0.7s ease forwards;
+  }
+
+  .preview-card {
+    background: rgba(20,41,68,0.75);
+    border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 8px;
+    padding: 28px 28px 24px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.35);
+    position: relative; overflow: hidden;
+  }
+
+  .preview-card::before {
+    content: '';
+    position: absolute; top: 0; left: 28px; right: 28px; height: 2px;
+    background: var(--gold); opacity: 0.55;
+  }
+
+  .preview-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .preview-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; font-weight: 600; color: var(--cream);
+    margin-bottom: 2px;
+  }
+  .preview-subtitle { font-size: 12px; color: var(--text-muted); }
+
+  .preview-badge {
+    background: rgba(91,158,110,0.15);
+    border: 1px solid rgba(91,158,110,0.3);
+    color: #7ec896; font-size: 10px;
+    padding: 4px 10px; border-radius: 20px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  /* Mini stats */
+  .preview-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 22px;
+  }
+
+  .pstat {
+    background: rgba(13,31,53,0.7);
+    border: 1px solid rgba(201,168,76,0.1);
+    border-radius: 5px; padding: 12px 14px;
+    text-align: center;
+  }
+
+  .pstat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; font-weight: 700;
+    color: var(--gold); line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .pstat-label {
+    font-size: 9px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-muted);
+  }
+
+  /* Sparkline chart */
+  .preview-chart { width: 100%; height: 120px; position: relative; }
+  .preview-chart canvas { width: 100%; height: 100%; }
+
+  .chart-legend {
+    display: flex; gap: 16px; margin-top: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ─── SECTION BASE ─── */
+  section {
+    position: relative; z-index: 1;
+    padding: 100px 60px;
+    max-width: 1200px; margin: 0 auto;
+  }
+
+  .section-eyebrow {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+  }
+  .section-eyebrow .eyebrow-text { color: var(--gold); }
+
+  .section-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 700; line-height: 1.15;
+    color: var(--cream); margin-bottom: 16px;
+  }
+
+  .section-subtext {
+    font-size: 16px; font-weight: 300;
+    color: var(--text-muted); line-height: 1.65;
+    max-width: 520px;
+  }
+
+  /* ─── DIVIDER ─── */
+  .divider {
+    border: none;
+    border-top: 1px solid rgba(201,168,76,0.08);
+    max-width: 100%; margin: 0 60px;
+    position: relative; z-index: 1;
+  }
+
+  /* ─── HOW IT WORKS ─── */
+  .steps-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 32px; margin-top: 60px;
+  }
+
+  .step-card {
+    background: rgba(20,41,68,0.55);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 36px 32px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+    opacity: 0; transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.2s;
+  }
+
+  .step-card.visible { opacity: 1; transform: translateY(0); }
+  .step-card:hover { border-color: rgba(201,168,76,0.35); }
+
+  .step-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 56px; font-weight: 700;
+    color: rgba(201,168,76,0.1); line-height: 1;
+    margin-bottom: 20px;
+  }
+
+  .step-icon {
+    width: 40px; height: 40px;
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .step-icon svg { width: 18px; height: 18px; }
+
+  .step-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 600;
+    color: var(--cream); margin-bottom: 10px;
+  }
+
+  .step-desc {
+    font-size: 14px; font-weight: 300;
+    color: var(--text-muted); line-height: 1.65;
+  }
+
+  /* ─── WHAT YOU GET ─── */
+  .features-layout {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 80px; align-items: center; margin-top: 60px;
+  }
+
+  .features-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .feature-item {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 20px 24px;
+    border: 1px solid transparent; border-radius: 5px;
+    cursor: default; transition: all 0.25s;
+    opacity: 0; transform: translateX(-20px);
+    transition: opacity 0.5s ease, transform 0.5s ease, background 0.25s, border-color 0.25s;
+  }
+
+  .feature-item.visible { opacity: 1; transform: translateX(0); }
+  .feature-item.active, .feature-item:hover {
+    background: rgba(20,41,68,0.7);
+    border-color: var(--border);
+  }
+
+  .feature-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--gold); flex-shrink: 0;
+    margin-top: 6px;
+  }
+
+  .feature-title {
+    font-size: 15px; font-weight: 500;
+    color: var(--cream); margin-bottom: 4px;
+  }
+
+  .feature-desc {
+    font-size: 13px; color: var(--text-muted);
+    font-weight: 300; line-height: 1.6;
+  }
+
+  /* Big result card */
+  .result-showcase {
+    background: rgba(20,41,68,0.75);
+    border: 1px solid rgba(201,168,76,0.18);
+    border-radius: 8px; padding: 36px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.3);
+    position: relative; overflow: hidden;
+    opacity: 0; transform: translateX(20px);
+    transition: opacity 0.7s 0.2s ease, transform 0.7s 0.2s ease;
+  }
+
+  .result-showcase.visible { opacity: 1; transform: translateX(0); }
+
+  .result-showcase::before {
+    content: ''; position: absolute;
+    top: 0; left: 36px; right: 36px; height: 2px;
+    background: var(--gold); opacity: 0.5;
+  }
+
+  .result-label {
+    font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 20px; font-weight: 500;
+  }
+
+  .result-big {
+    display: flex; flex-direction: column; gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .result-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .result-row-label { font-size: 13px; color: var(--text-muted); font-weight: 300; }
+
+  .result-row-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; font-weight: 600; color: var(--gold);
+  }
+
+  .result-row-value.cream { color: var(--cream); }
+  .result-row-value.green { color: #7ec896; }
+
+  .result-summary {
+    background: rgba(13,31,53,0.6);
+    border: 1px solid rgba(201,168,76,0.1);
+    border-radius: 4px; padding: 16px;
+    font-size: 13px; color: var(--text-muted);
+    font-weight: 300; line-height: 1.6; font-style: italic;
+  }
+
+  /* ─── AUSTRALIAN BUILT ─── */
+  .trust-strip {
+    background: rgba(20,41,68,0.4);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 40px 60px;
+    position: relative; z-index: 1;
+  }
+
+  .trust-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 40px;
+    flex-wrap: wrap;
+  }
+
+  .trust-item {
+    display: flex; align-items: center; gap: 14px;
+    font-size: 13px; color: var(--text-muted);
+  }
+
+  .trust-icon {
+    width: 36px; height: 36px;
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+
+  .trust-icon svg { width: 16px; height: 16px; }
+  .trust-item strong { display: block; font-weight: 500; color: var(--cream); margin-bottom: 1px; }
+
+  /* ─── CTA SECTION ─── */
+  .cta-section {
+    text-align: center; padding: 120px 60px;
+    position: relative; z-index: 1;
+    max-width: 900px; margin: 0 auto;
+  }
+
+  .cta-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 5vw, 60px);
+    font-weight: 700; line-height: 1.1;
+    color: var(--cream); margin-bottom: 20px;
+  }
+
+  .cta-heading em { font-style: italic; color: var(--gold); }
+
+  .cta-subtext {
+    font-size: 16px; font-weight: 300;
+    color: var(--text-muted); line-height: 1.65;
+    margin-bottom: 44px; max-width: 480px; margin-left: auto; margin-right: auto;
+  }
+
+  /* ─── DISCLAIMER ─── */
+  .disclaimer-strip {
+    border-top: 1px solid var(--border);
+    padding: 28px 60px;
+    position: relative; z-index: 1;
+  }
+
+  .disclaimer-inner {
+    max-width: 1200px; margin: 0 auto;
+    font-size: 11px; color: rgba(138,155,176,0.55);
+    line-height: 1.6; text-align: center;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 60px;
+    position: relative; z-index: 1;
+  }
+
+  .footer-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 20px;
+  }
+
+  .footer-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .footer-logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px; color: var(--text-muted); letter-spacing: 0.04em;
+  }
+
+  .footer-right { font-size: 12px; color: rgba(138,155,176,0.5); }
+  .footer-right a { color: rgba(138,155,176,0.6); text-decoration: none; }
+  .footer-right a:hover { color: var(--text-muted); }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 960px) {
+    nav { padding: 20px 24px; }
+    .hero, section { padding: 100px 24px 60px; }
+    .hero-layout { grid-template-columns: 1fr; gap: 48px; }
+    .hero-right { display: none; }
+    .steps-grid { grid-template-columns: 1fr; gap: 20px; }
+    .features-layout { grid-template-columns: 1fr; gap: 40px; }
+    .trust-strip, .disclaimer-strip, footer { padding-left: 24px; padding-right: 24px; }
+    .cta-section { padding: 80px 24px; }
+    .trust-inner { flex-direction: column; align-items: flex-start; gap: 24px; }
+    .divider { margin: 0 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── NAV ─── -->
+<nav id="nav">
+  <a href="#" class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="17" stroke="#c9a84c" stroke-width="1"/>
+        <line x1="18" y1="7" x2="18" y2="29" stroke="#c9a84c" stroke-width="1.5"/>
+        <line x1="11" y1="14" x2="25" y2="14" stroke="#c9a84c" stroke-width="1.5"/>
+        <path d="M11 29 Q18 24 25 29" stroke="#c9a84c" stroke-width="1.5" fill="none"/>
+      </svg>
+    </div>
+    <span class="logo-text">Harbour</span>
+  </a>
+  <div class="nav-right">
+    <a href="auth/login" class="nav-link">Sign in</a>
+    <a href="forecast/new" class="btn-nav">Get started</a>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<div style="position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:0 60px;">
+  <div class="hero" style="padding-left:0;padding-right:0;">
+    <div class="hero-layout">
+      <div class="hero-left">
+        <div class="hero-eyebrow">
+          <div class="eyebrow-line"></div>
+          <span class="eyebrow-text">Australian retirement forecasting</span>
+        </div>
+        <h1 class="hero-headline">
+          See your retirement<br><em>clearly.</em>
+        </h1>
+        <p class="hero-subtext">
+          Harbour runs <strong>1,000 simulated futures</strong> based on your super, salary, and spending — including Centrelink Age Pension. No spreadsheets. No guesswork.
+        </p>
+        <div class="hero-cta">
+          <a href="forecast/new" class="btn-primary">
+            Run my forecast
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="#0d1f35" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <a href="#how-it-works" class="btn-ghost">How it works</a>
+        </div>
+        <p class="hero-note">Free to use · No financial advice · Projections only</p>
+      </div>
+
+      <!-- Forecast preview card -->
+      <div class="hero-right">
+        <div class="preview-card">
+          <div class="preview-header">
+            <div>
+              <div class="preview-title">Margaret's forecast</div>
+              <div class="preview-subtitle">Retire at 65 · $420k super today</div>
+            </div>
+            <div class="preview-badge">Generated</div>
+          </div>
+          <div class="preview-stats">
+            <div class="pstat">
+              <div class="pstat-value">$1.1m</div>
+              <div class="pstat-label">Super at 65</div>
+            </div>
+            <div class="pstat">
+              <div class="pstat-value" style="font-size:14px;color:var(--cream);">$107/fn</div>
+              <div class="pstat-label">Age Pension</div>
+            </div>
+            <div class="pstat">
+              <div class="pstat-value" style="color:#7ec896;">87</div>
+              <div class="pstat-label">Funds to age</div>
+            </div>
+          </div>
+          <!-- Canvas sparkline chart -->
+          <div class="preview-chart">
+            <canvas id="heroChart"></canvas>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#7ec896;"></div>Best case</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#c9a84c;"></div>Median</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#c0614a;"></div>Worst case</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ─── TRUST STRIP ─── -->
+<div class="trust-strip">
+  <div class="trust-inner">
+    <div class="trust-item">
+      <div class="trust-icon">
+        <svg viewBox="0 0 16 16" fill="none">
+          <path d="M8 1l2 4.5H15l-3.9 2.8 1.5 4.7L8 10.5l-4.6 2.5 1.5-4.7L1 5.5h5z" stroke="#c9a84c" stroke-width="1" fill="none"/>
+        </svg>
+      </div>
+      <div><strong>Centrelink-integrated</strong>Age Pension calculated automatically</div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">
+        <svg viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="2" width="12" height="12" rx="1" stroke="#c9a84c" stroke-width="1"/>
+          <path d="M5 8l2 2 4-4" stroke="#c9a84c" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div><strong>Current ATO & ASFA figures</strong>Updated each March and September</div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">
+        <svg viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6" stroke="#c9a84c" stroke-width="1"/>
+          <path d="M5 8.5c1 1.5 5 1.5 6 0" stroke="#c9a84c" stroke-width="1" stroke-linecap="round"/>
+          <circle cx="6" cy="6.5" r="0.8" fill="#c9a84c"/>
+          <circle cx="10" cy="6.5" r="0.8" fill="#c9a84c"/>
+        </svg>
+      </div>
+      <div><strong>Built for Australians</strong>Super rules, drawdown rates, and all</div>
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">
+        <svg viewBox="0 0 16 16" fill="none">
+          <path d="M8 2v12M2 8h12M4.5 4.5l7 7M11.5 4.5l-7 7" stroke="#c9a84c" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div><strong>1,000 simulations</strong>Monte Carlo modelling to age 90</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ─── HOW IT WORKS ─── -->
+<section id="how-it-works">
+  <div class="section-eyebrow">
+    <div class="eyebrow-line"></div>
+    <span class="eyebrow-text">How it works</span>
+  </div>
+  <h2 class="section-heading">Three steps to your forecast</h2>
+  <p class="section-subtext">No account needed to start. Your first forecast takes under two minutes.</p>
+
+  <div class="steps-grid">
+    <div class="step-card" data-animate>
+      <div class="step-number">01</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="6" r="3" stroke="#c9a84c" stroke-width="1.2"/>
+          <path d="M3 15c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#c9a84c" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="step-title">Enter your details</div>
+      <p class="step-desc">Your age, current super balance, salary, planned retirement age, and how much you'd like to spend each year. Takes about 90 seconds.</p>
+    </div>
+
+    <div class="step-card" data-animate style="transition-delay:0.1s">
+      <div class="step-number">02</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 18 18" fill="none">
+          <path d="M2 14l4-5 3 3 3-4 4 6" stroke="#c9a84c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 3h14" stroke="#c9a84c" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+        </svg>
+      </div>
+      <div class="step-title">We run the numbers</div>
+      <p class="step-desc">Harbour runs 1,000 simulations using your inputs plus current Centrelink rates, ATO super rules, and ASFA retirement standards.</p>
+    </div>
+
+    <div class="step-card" data-animate style="transition-delay:0.2s">
+      <div class="step-number">03</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 18 18" fill="none">
+          <rect x="2" y="3" width="14" height="12" rx="1.5" stroke="#c9a84c" stroke-width="1.2"/>
+          <path d="M6 7h6M6 10h4" stroke="#c9a84c" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+        </svg>
+      </div>
+      <div class="step-title">See your results</div>
+      <p class="step-desc">Best, median, and worst-case projections. Your likely Age Pension. A plain English summary of what it all means for your retirement.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── WHAT YOU GET ─── -->
+<section id="features">
+  <div class="section-eyebrow">
+    <div class="eyebrow-line"></div>
+    <span class="eyebrow-text">What you'll see</span>
+  </div>
+  <h2 class="section-heading">Real answers, not round numbers</h2>
+
+  <div class="features-layout">
+    <div class="features-list">
+
+      <div class="feature-item active" data-animate-left>
+        <div class="feature-dot"></div>
+        <div>
+          <div class="feature-title">Monte Carlo projection chart</div>
+          <div class="feature-desc">Three outcome bands — optimistic, median, and pessimistic — plotted from today to age 90. See the range of realistic possibilities, not just a single number.</div>
+        </div>
+      </div>
+
+      <div class="feature-item" data-animate-left style="transition-delay:0.1s">
+        <div class="feature-dot"></div>
+        <div>
+          <div class="feature-title">Super balance at retirement</div>
+          <div class="feature-desc">The median projected balance when you stop working, based on your current super, salary, SG contributions, and compound growth.</div>
+        </div>
+      </div>
+
+      <div class="feature-item" data-animate-left style="transition-delay:0.2s">
+        <div class="feature-dot"></div>
+        <div>
+          <div class="feature-title">Centrelink Age Pension estimate</div>
+          <div class="feature-desc">Calculated using the assets test and income test (deeming rules). Shows your fortnightly entitlement — the way Centrelink reports it.</div>
+        </div>
+      </div>
+
+      <div class="feature-item" data-animate-left style="transition-delay:0.3s">
+        <div class="feature-dot"></div>
+        <div>
+          <div class="feature-title">Age your money lasts to</div>
+          <div class="feature-desc">Best, median, and worst case. Tells you how likely your savings are to last through retirement at your target spending level.</div>
+        </div>
+      </div>
+
+      <div class="feature-item" data-animate-left style="transition-delay:0.4s">
+        <div class="feature-dot"></div>
+        <div>
+          <div class="feature-title">Plain English summary</div>
+          <div class="feature-desc">No jargon. Just a clear paragraph explaining what your forecast means and whether you're on track for the retirement you have in mind.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Result showcase -->
+    <div class="result-showcase" data-animate-right>
+      <div class="result-label">Sample forecast result</div>
+      <div class="result-big">
+        <div class="result-row">
+          <span class="result-row-label">Super at retirement (age 65)</span>
+          <span class="result-row-value">$1,090,000</span>
+        </div>
+        <div class="result-row">
+          <span class="result-row-label">Age Pension (fortnightly)</span>
+          <span class="result-row-value cream">$107 /fn</span>
+        </div>
+        <div class="result-row">
+          <span class="result-row-label">Funds last (median)</span>
+          <span class="result-row-value green">to age 87</span>
+        </div>
+        <div class="result-row">
+          <span class="result-row-label">Funds last (pessimistic)</span>
+          <span class="result-row-value" style="color:#e08878;">to age 81</span>
+        </div>
+      </div>
+      <div class="result-summary">
+        "In the median scenario, your super lasts to age 87 — well beyond average life expectancy. Even in the pessimistic scenario, your funds reach age 81, with the Age Pension continuing throughout."
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ─── CTA ─── -->
+<div style="position:relative;z-index:1;">
+  <div class="cta-section">
+    <div class="section-eyebrow" style="justify-content:center;">
+      <div class="eyebrow-line"></div>
+      <span class="eyebrow-text">Free to run</span>
+    </div>
+    <h2 class="cta-heading">Ready to see where<br>you <em>actually</em> stand?</h2>
+    <p class="cta-subtext">Your first forecast takes under two minutes. No spreadsheets, no adviser, no obligation.</p>
+    <a href="forecast/new" class="btn-primary" style="font-size:17px;padding:18px 52px;display:inline-flex;">
+      Run my forecast
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M3 8h10M9 4l4 4-4 4" stroke="#0d1f35" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+</div>
+
+<!-- ─── DISCLAIMER ─── -->
+<div class="disclaimer-strip">
+  <div class="disclaimer-inner">
+    This website is for general information purposes only and does not constitute financial advice. Results are projections based on modelled assumptions and are not guaranteed. Centrelink rules and superannuation laws change regularly — always verify your personal entitlements with Services Australia or a licensed financial adviser before making retirement decisions.
+  </div>
+</div>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="footer-inner">
+    <a href="#" class="footer-logo">
+      <svg viewBox="0 0 36 36" fill="none" width="22" height="22">
+        <circle cx="18" cy="18" r="17" stroke="#8a9bb0" stroke-width="1"/>
+        <line x1="18" y1="7" x2="18" y2="29" stroke="#8a9bb0" stroke-width="1.5"/>
+        <line x1="11" y1="14" x2="25" y2="14" stroke="#8a9bb0" stroke-width="1.5"/>
+        <path d="M11 29 Q18 24 25 29" stroke="#8a9bb0" stroke-width="1.5" fill="none"/>
+      </svg>
+      <span class="footer-logo-text">Harbour</span>
+    </a>
+    <div class="footer-right">
+      General information only · Not financial advice ·
+      <a href="#">Privacy</a> · <a href="#">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// ─── Hero sparkline chart ───
+window.addEventListener('load', () => {
+  const canvas = document.getElementById('heroChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // Simulated data: ages 58–90
+  const ages = Array.from({length: 33}, (_, i) => i + 58);
+  const p90 = [420, 490, 567, 651, 744, 847, 960, 1085, 1098, 1089, 1075, 1055, 1028, 995, 954, 906, 850, 786, 713, 630, 538, 436, 324, 201, 97, 0, 0, 0, 0, 0, 0, 0, 0];
+  const p50 = [420, 470, 524, 584, 650, 722, 800, 882, 889, 878, 860, 835, 802, 760, 710, 652, 584, 507, 420, 323, 215, 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const p10 = [420, 445, 468, 490, 510, 528, 544, 558, 556, 545, 528, 504, 473, 435, 390, 337, 277, 210, 136, 54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ages,
+      datasets: [
+        {
+          data: p90,
+          borderColor: '#5b9e6e',
+          borderWidth: 1.5,
+          tension: 0.4,
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          data: p50,
+          borderColor: '#c9a84c',
+          borderWidth: 2,
+          tension: 0.4,
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          data: p10,
+          borderColor: '#c0614a',
+          borderWidth: 1.5,
+          tension: 0.4,
+          pointRadius: 0,
+          fill: false,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 1200, easing: 'easeInOutQuart' },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.03)' },
+          ticks: {
+            color: '#8a9bb0', font: { family: 'DM Sans', size: 9 },
+            maxTicksLimit: 6
+          }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.03)' },
+          ticks: {
+            color: '#8a9bb0', font: { family: 'DM Sans', size: 9 },
+            callback: v => v >= 1000 ? '$' + v/1000 + 'k' : ''
+          }
+        }
+      }
+    }
+  });
+});
+
+// ─── Nav scroll effect ───
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 40);
+});
+
+// ─── Intersection observer for scroll animations ───
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('[data-animate], [data-animate-left], [data-animate-right]').forEach(el => {
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
