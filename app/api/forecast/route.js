@@ -5,7 +5,7 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { runForecast } from '../../engine/forecast.js';
+import { runForecast } from '../../../engine/forecast.js';
 
 export async function POST(request) {
   // ── Parse request body
