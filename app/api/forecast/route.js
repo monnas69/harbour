@@ -7,7 +7,7 @@ import { runForecast } from '@/engine/forecast.js';
 
 export async function POST(request) {
   // ── Auth: verify the user is signed in
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
