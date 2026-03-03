@@ -129,16 +129,33 @@ export default function AdminPage() {
   // ── Load config ─────────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push('/auth/login'); return; }
+      async function load() {
+  try {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { router.push('/auth/login'); return; }
 
-      // Basic admin check — only your email can access this page
-      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-      if (adminEmail && session.user.email !== adminEmail) {
-        router.push('/dashboard');
-        return;
-      }
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+    if (adminEmail && session.user.email !== adminEmail) {
+      router.push('/dashboard');
+      return;
+    }
+
+    const { data: rows, error } = await supabase
+      .from('config')
+      .select('*');
+
+    if (error) { console.error(error); setLoading(false); return; }
+
+    const map = {};
+    rows.forEach(r => { map[r.key] = r; });
+    setConfig(map);
+    setLoading(false);
+  } catch (err) {
+    console.error('Admin load error:', err);
+    setLoading(false);
+  }
+}
 
       const { data: rows, error } = await supabase
         .from('config')
