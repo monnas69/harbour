@@ -47,7 +47,7 @@ export default function ForecastInputPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [direction, setDirection] = useState('forward'); // for animation
+  const [direction, setDirection] = useState('forward');
 
   const [form, setForm] = useState({
     name: '',
@@ -196,13 +196,6 @@ export default function ForecastInputPage() {
     setLoading(true);
     setError('');
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/auth/login');
-        return;
-      }
-
       const payload = {
         name: form.name.trim(),
         current_age: parseInt(form.currentAge),
@@ -224,8 +217,20 @@ export default function ForecastInputPage() {
       }
 
       const data = await res.json();
-      // Redirect to forecast results page with the forecast id
-      router.push(`/forecast/${data.id}`);
+
+      // If forecast was saved (authenticated user) redirect to saved result
+      if (data.id) {
+        router.push(`/forecast/${data.id}`);
+        return;
+      }
+
+      // Guest user — store results in sessionStorage and show preview
+      sessionStorage.setItem('harbour_preview', JSON.stringify({
+        inputs: payload,
+        outputs: data,
+      }));
+      router.push('/forecast/preview');
+
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -271,7 +276,6 @@ export default function ForecastInputPage() {
           background: var(--cream);
         }
 
-        /* ─── Sidebar ─────────────────────────────────────────── */
         .sidebar {
           background: var(--navy);
           display: flex;
@@ -298,10 +302,7 @@ export default function ForecastInputPage() {
           margin-bottom: 56px;
         }
 
-        .step-list {
-          list-style: none;
-          flex: 1;
-        }
+        .step-list { list-style: none; flex: 1; }
 
         .step-item {
           display: flex;
@@ -313,392 +314,97 @@ export default function ForecastInputPage() {
         }
 
         .step-num {
-          width: 32px;
-          height: 32px;
+          width: 32px; height: 32px;
           border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.04em;
-          flex-shrink: 0;
-          transition: all 0.3s;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+          flex-shrink: 0; transition: all 0.3s;
           border: 1.5px solid rgba(255,255,255,0.15);
           color: rgba(255,255,255,0.35);
         }
 
-        .step-item.done .step-num {
-          background: var(--gold);
-          border-color: var(--gold);
-          color: var(--navy);
-        }
+        .step-item.done .step-num { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+        .step-item.active .step-num { background: transparent; border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
 
-        .step-item.active .step-num {
-          background: transparent;
-          border-color: var(--gold);
-          color: var(--gold);
-          box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
-        }
-
-        .step-label {
-          font-size: 13px;
-          font-weight: 400;
-          color: rgba(255,255,255,0.3);
-          transition: color 0.2s;
-          letter-spacing: 0.01em;
-        }
-
+        .step-label { font-size: 13px; font-weight: 400; color: rgba(255,255,255,0.3); transition: color 0.2s; letter-spacing: 0.01em; }
         .step-item.done .step-label  { color: rgba(255,255,255,0.55); }
         .step-item.active .step-label { color: #fff; font-weight: 500; }
 
         .sidebar-foot {
-          font-size: 11px;
-          color: rgba(255,255,255,0.2);
-          line-height: 1.6;
-          border-top: 1px solid rgba(255,255,255,0.08);
-          padding-top: 24px;
+          font-size: 11px; color: rgba(255,255,255,0.2); line-height: 1.6;
+          border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px;
         }
 
-        /* ─── Main area ───────────────────────────────────────── */
         .main {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          padding: 64px 72px;
-          min-height: 100vh;
-          max-width: 640px;
+          display: flex; flex-direction: column; justify-content: center;
+          padding: 64px 72px; min-height: 100vh; max-width: 640px;
         }
 
-        .step-heading {
-          font-family: 'Playfair Display', serif;
-          font-size: 36px;
-          font-weight: 700;
-          color: var(--navy);
-          line-height: 1.2;
-          margin-bottom: 10px;
-        }
+        .step-heading { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700; color: var(--navy); line-height: 1.2; margin-bottom: 10px; }
+        .step-sub { font-size: 15px; color: var(--muted); margin-bottom: 40px; line-height: 1.5; font-weight: 400; }
 
-        .step-sub {
-          font-size: 15px;
-          color: var(--muted);
-          margin-bottom: 40px;
-          line-height: 1.5;
-          font-weight: 400;
-        }
+        .field-group { margin-bottom: 24px; }
 
-        /* ─── Inputs ──────────────────────────────────────────── */
-        .field-group {
-          margin-bottom: 24px;
-        }
-
-        .field-label {
-          display: block;
-          font-size: 12px;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: var(--muted);
-          margin-bottom: 10px;
-        }
+        .field-label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
 
         .field-input {
-          width: 100%;
-          padding: 16px 20px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 18px;
-          font-weight: 400;
-          background: #fff;
-          border: 2px solid var(--cream2);
-          border-radius: 10px;
-          color: var(--navy);
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
-          -webkit-appearance: none;
-          appearance: none;
+          width: 100%; padding: 16px 20px;
+          font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 400;
+          background: #fff; border: 2px solid var(--cream2); border-radius: 10px;
+          color: var(--navy); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+          -webkit-appearance: none; appearance: none;
         }
-
-        .field-input:focus {
-          border-color: var(--gold);
-          box-shadow: 0 0 0 4px rgba(201,168,76,0.12);
-        }
-
+        .field-input:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201,168,76,0.12); }
         .field-input::placeholder { color: #bbb; }
+        .field-hint { margin-top: 7px; font-size: 13px; color: var(--muted); }
 
-        .field-hint {
-          margin-top: 7px;
-          font-size: 13px;
-          color: var(--muted);
-        }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
 
-        /* ─── Two-col row ─────────────────────────────────────── */
-        .field-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 24px;
-        }
+        .spend-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; margin-bottom: 12px; }
+        .spend-divider { font-size: 13px; color: var(--muted); text-align: center; white-space: nowrap; }
 
-        /* ─── Bidirectional spend ─────────────────────────────── */
-        .spend-grid {
-          display: grid;
-          grid-template-columns: 1fr auto 1fr;
-          align-items: center;
-          gap: 16px;
-          margin-bottom: 12px;
-        }
+        .preset-row { display: flex; gap: 10px; margin-bottom: 24px; }
+        .preset-btn { flex: 1; padding: 14px 16px; border: 2px solid var(--cream2); border-radius: 10px; background: #fff; cursor: pointer; text-align: left; transition: all 0.2s; }
+        .preset-btn:hover { border-color: var(--gold); background: rgba(201,168,76,0.05); }
+        .preset-btn.active { border-color: var(--gold); background: rgba(201,168,76,0.08); }
+        .preset-name { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+        .preset-amount { font-size: 17px; font-weight: 600; color: var(--navy); font-family: 'DM Sans', sans-serif; }
+        .preset-freq { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-        .spend-divider {
-          font-size: 13px;
-          color: var(--muted);
-          text-align: center;
-          white-space: nowrap;
-        }
+        .sg-callout { background: rgba(201,168,76,0.08); border: 1.5px solid rgba(201,168,76,0.3); border-radius: 10px; padding: 16px 20px; margin-top: -8px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px; }
+        .sg-icon { font-size: 22px; flex-shrink: 0; }
+        .sg-text { font-size: 14px; color: var(--navy); line-height: 1.4; }
+        .sg-text strong { color: #8a6c1a; font-weight: 600; }
 
-        /* ─── ASFA presets ────────────────────────────────────── */
-        .preset-row {
-          display: flex;
-          gap: 10px;
-          margin-bottom: 24px;
-        }
-
-        .preset-btn {
-          flex: 1;
-          padding: 14px 16px;
-          border: 2px solid var(--cream2);
-          border-radius: 10px;
-          background: #fff;
-          cursor: pointer;
-          text-align: left;
-          transition: all 0.2s;
-        }
-
-        .preset-btn:hover {
-          border-color: var(--gold);
-          background: rgba(201,168,76,0.05);
-        }
-
-        .preset-btn.active {
-          border-color: var(--gold);
-          background: rgba(201,168,76,0.08);
-        }
-
-        .preset-name {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: var(--muted);
-          margin-bottom: 4px;
-        }
-
-        .preset-amount {
-          font-size: 17px;
-          font-weight: 600;
-          color: var(--navy);
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .preset-freq {
-          font-size: 11px;
-          color: var(--muted);
-          margin-top: 2px;
-        }
-
-        /* ─── SG callout ──────────────────────────────────────── */
-        .sg-callout {
-          background: rgba(201,168,76,0.08);
-          border: 1.5px solid rgba(201,168,76,0.3);
-          border-radius: 10px;
-          padding: 16px 20px;
-          margin-top: -8px;
-          margin-bottom: 24px;
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .sg-icon {
-          font-size: 22px;
-          flex-shrink: 0;
-        }
-
-        .sg-text {
-          font-size: 14px;
-          color: var(--navy);
-          line-height: 1.4;
-        }
-
-        .sg-text strong {
-          color: #8a6c1a;
-          font-weight: 600;
-        }
-
-        /* ─── Review card ─────────────────────────────────────── */
-        .review-card {
-          background: #fff;
-          border: 2px solid var(--cream2);
-          border-radius: 12px;
-          overflow: hidden;
-          margin-bottom: 28px;
-        }
-
-        .review-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 14px 20px;
-          border-bottom: 1px solid var(--cream2);
-          font-size: 14px;
-        }
-
+        .review-card { background: #fff; border: 2px solid var(--cream2); border-radius: 12px; overflow: hidden; margin-bottom: 28px; }
+        .review-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--cream2); font-size: 14px; }
         .review-row:last-child { border-bottom: none; }
+        .review-key { color: var(--muted); font-weight: 400; }
+        .review-val { font-weight: 600; color: var(--navy); text-align: right; }
+        .review-section-head { background: var(--cream2); padding: 8px 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 
-        .review-key {
-          color: var(--muted);
-          font-weight: 400;
-        }
+        .btn-row { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
 
-        .review-val {
-          font-weight: 600;
-          color: var(--navy);
-          text-align: right;
-        }
+        .btn-back { padding: 14px 24px; border: 2px solid var(--cream2); border-radius: 10px; background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .btn-back:hover { border-color: var(--navy); color: var(--navy); }
 
-        .review-section-head {
-          background: var(--cream2);
-          padding: 8px 20px;
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: var(--muted);
-        }
+        .btn-next { flex: 1; padding: 16px 24px; background: var(--navy); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.25s; letter-spacing: 0.01em; position: relative; overflow: hidden; }
+        .btn-next:hover:not(:disabled) { background: var(--navy2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(13,31,53,0.25); }
+        .btn-next:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-next.gold { background: var(--gold); color: var(--navy); }
+        .btn-next.gold:hover:not(:disabled) { background: var(--gold-light); }
 
-        /* ─── Nav buttons ─────────────────────────────────────── */
-        .btn-row {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-          margin-top: 8px;
-        }
+        .error-msg { background: #fff0f0; border: 1.5px solid #fcc; border-radius: 8px; padding: 12px 16px; font-size: 14px; color: #c0392b; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
 
-        .btn-back {
-          padding: 14px 24px;
-          border: 2px solid var(--cream2);
-          border-radius: 10px;
-          background: transparent;
-          color: var(--muted);
-          font-family: 'DM Sans', sans-serif;
-          font-size: 15px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
+        .progress-bar-wrap { height: 3px; background: var(--cream2); border-radius: 2px; margin-bottom: 48px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: var(--gold); border-radius: 2px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 
-        .btn-back:hover {
-          border-color: var(--navy);
-          color: var(--navy);
-        }
-
-        .btn-next {
-          flex: 1;
-          padding: 16px 24px;
-          background: var(--navy);
-          color: #fff;
-          border: none;
-          border-radius: 10px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.25s;
-          letter-spacing: 0.01em;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .btn-next:hover:not(:disabled) {
-          background: var(--navy2);
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(13,31,53,0.25);
-        }
-
-        .btn-next:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .btn-next.gold {
-          background: var(--gold);
-          color: var(--navy);
-        }
-
-        .btn-next.gold:hover:not(:disabled) {
-          background: var(--gold-light);
-        }
-
-        /* ─── Error ───────────────────────────────────────────── */
-        .error-msg {
-          background: #fff0f0;
-          border: 1.5px solid #fcc;
-          border-radius: 8px;
-          padding: 12px 16px;
-          font-size: 14px;
-          color: #c0392b;
-          margin-bottom: 16px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        /* ─── Progress bar ────────────────────────────────────── */
-        .progress-bar-wrap {
-          height: 3px;
-          background: var(--cream2);
-          border-radius: 2px;
-          margin-bottom: 48px;
-          overflow: hidden;
-        }
-
-        .progress-bar-fill {
-          height: 100%;
-          background: var(--gold);
-          border-radius: 2px;
-          transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* ─── Loading spinner ─────────────────────────────────── */
-        .spinner {
-          display: inline-block;
-          width: 18px;
-          height: 18px;
-          border: 2px solid rgba(255,255,255,0.4);
-          border-top-color: #fff;
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
-          margin-right: 8px;
-          vertical-align: middle;
-        }
-
-        .spinner.dark {
-          border-color: rgba(13,31,53,0.2);
-          border-top-color: var(--navy);
-        }
-
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+        .spinner.dark { border-color: rgba(13,31,53,0.2); border-top-color: var(--navy); }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ─── Optional field label ────────────────────────────── */
-        .optional-tag {
-          font-size: 11px;
-          font-weight: 400;
-          color: #aaa;
-          text-transform: none;
-          letter-spacing: 0;
-          margin-left: 6px;
-        }
+        .optional-tag { font-size: 11px; font-weight: 400; color: #aaa; text-transform: none; letter-spacing: 0; margin-left: 6px; }
 
-        /* ─── Responsive ──────────────────────────────────────── */
         @media (max-width: 768px) {
           .harbour-wrap { grid-template-columns: 1fr; }
           .sidebar { display: none; }
@@ -710,94 +416,60 @@ export default function ForecastInputPage() {
       `}</style>
 
       <div className="harbour-wrap">
-        {/* ─── Sidebar ─────────────────────────────────────────── */}
         <aside className="sidebar">
           <div className="sidebar-logo">Harbour</div>
           <div className="sidebar-tagline">Retirement planning</div>
-
           <ul className="step-list">
             {STEPS.map((s) => {
               const status = s.id < step ? 'done' : s.id === step ? 'active' : '';
               return (
                 <li key={s.id} className={`step-item ${status}`}>
-                  <div className="step-num">
-                    {s.id < step ? '✓' : s.shortLabel}
-                  </div>
+                  <div className="step-num">{s.id < step ? '✓' : s.shortLabel}</div>
                   <span className="step-label">{s.label}</span>
                 </li>
               );
             })}
           </ul>
-
           <div className="sidebar-foot">
             Projections only — not financial advice.<br />
             Powered by Monte Carlo simulation.
           </div>
         </aside>
 
-        {/* ─── Main ────────────────────────────────────────────── */}
         <main className="main">
-          {/* Progress */}
           <div className="progress-bar-wrap">
             <div className="progress-bar-fill" style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }} />
           </div>
 
-          {/* Error */}
           {error && (
-            <div className="error-msg">
-              <span>⚠</span> {error}
-            </div>
+            <div className="error-msg"><span>⚠</span> {error}</div>
           )}
 
-          {/* ── Step 1: Name ──────────────────────────────────── */}
+          {/* Step 1 */}
           {step === 1 && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">Let's start<br />with your name.</h1>
               <p className="step-sub">We'll use this to personalise your forecast — nothing else.</p>
-
               <div className="field-group">
                 <label className="field-label">Your first name</label>
-                <input
-                  className="field-input"
-                  type="text"
-                  placeholder="e.g. Karen"
-                  value={form.name}
-                  onChange={e => setField('name', e.target.value)}
-                  autoFocus
-                  autoComplete="given-name"
-                />
+                <input className="field-input" type="text" placeholder="e.g. Karen" value={form.name} onChange={e => setField('name', e.target.value)} autoFocus autoComplete="given-name" />
               </div>
-
               <div className="btn-row">
-                <button className="btn-next" onClick={goNext}>
-                  Continue →
-                </button>
+                <button className="btn-next" onClick={goNext}>Continue →</button>
               </div>
             </div>
           )}
 
-          {/* ── Step 2: Current age ───────────────────────────── */}
+          {/* Step 2 */}
           {step === 2 && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">How old are<br />you today?</h1>
               <p className="step-sub">We model your super growth from now until retirement.</p>
-
               <div className="field-group">
                 <label className="field-label">Current age (years)</label>
-                <input
-                  className="field-input"
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="e.g. 52"
-                  min={40}
-                  max={85}
-                  value={form.currentAge}
-                  onChange={e => setField('currentAge', e.target.value)}
-                  autoFocus
-                />
+                <input className="field-input" type="number" inputMode="numeric" placeholder="e.g. 52" min={25} max={85} value={form.currentAge} onChange={e => setField('currentAge', e.target.value)} autoFocus />
                 <p className="field-hint">Must be between 25 and 85.</p>
               </div>
-
               <div className="btn-row">
                 <button className="btn-back" onClick={goBack}>← Back</button>
                 <button className="btn-next" onClick={goNext}>Continue →</button>
@@ -805,50 +477,26 @@ export default function ForecastInputPage() {
             </div>
           )}
 
-          {/* ── Step 3: Super balance ─────────────────────────── */}
+          {/* Step 3 */}
           {step === 3 && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">Your super<br />balance today.</h1>
               <p className="step-sub">Check your latest super statement or fund app for the total across all funds.</p>
-
               <div className="field-group">
                 <label className="field-label">Current super balance</label>
-                <input
-                  className="field-input"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="e.g. $280,000"
-                  value={form.superBalanceDisplay}
-                  onChange={e => handleSuperBalance(e.target.value)}
-                  onBlur={handleSuperBalanceBlur}
-                  autoFocus
-                />
+                <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $280,000" value={form.superBalanceDisplay} onChange={e => handleSuperBalance(e.target.value)} onBlur={handleSuperBalanceBlur} autoFocus />
               </div>
-
               <div className="field-group">
-                <label className="field-label">
-                  Annual salary <span className="optional-tag">(optional — for SG projection)</span>
-                </label>
-                <input
-                  className="field-input"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="e.g. $95,000"
-                  value={form.salaryDisplay}
-                  onChange={e => handleSalary(e.target.value)}
-                  onBlur={handleSalaryBlur}
-                />
+                <label className="field-label">Annual salary <span className="optional-tag">(optional — for SG projection)</span></label>
+                <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $95,000" value={form.salaryDisplay} onChange={e => handleSalary(e.target.value)} onBlur={handleSalaryBlur} />
                 <p className="field-hint">Used to calculate your employer's 12% super contributions until retirement.</p>
               </div>
-
               {sgAmount !== null && (
                 <div className="sg-callout">
                   <div className="sg-icon">💼</div>
-                  <div className="sg-text">
-Your employer is contributing approximately <strong>{formatCurrency(sgAmount)} per fortnight</strong> ({formatCurrency(sgAnnual(form.salary))} per year) to your super.                  </div>
+                  <div className="sg-text">Your employer is contributing approximately <strong>{formatCurrency(sgAmount)} per fortnight</strong> ({formatCurrency(sgAnnual(form.salary))} per year) to your super.</div>
                 </div>
               )}
-
               <div className="btn-row">
                 <button className="btn-back" onClick={goBack}>← Back</button>
                 <button className="btn-next" onClick={goNext}>Continue →</button>
@@ -856,33 +504,16 @@ Your employer is contributing approximately <strong>{formatCurrency(sgAmount)} p
             </div>
           )}
 
-          {/* ── Step 4: Retirement age ────────────────────────── */}
+          {/* Step 4 */}
           {step === 4 && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">When do you<br />want to retire?</h1>
-              <p className="step-sub">
-                The Age Pension becomes available at 67 regardless of when you stop working.
-                {form.currentAge && <> You are currently {form.currentAge}.</>}
-              </p>
-
+              <p className="step-sub">The Age Pension becomes available at 67 regardless of when you stop working.{form.currentAge && <> You are currently {form.currentAge}.</>}</p>
               <div className="field-group">
                 <label className="field-label">Target retirement age</label>
-                <input
-                  className="field-input"
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="e.g. 65"
-                  min={parseInt(form.currentAge) + 1 || 41}
-                  max={75}
-                  value={form.retirementAge}
-                  onChange={e => setField('retirementAge', e.target.value)}
-                  autoFocus
-                />
-                <p className="field-hint">
-                  Must be older than {form.currentAge || 'your current age'} and no later than 75.
-                </p>
+                <input className="field-input" type="number" inputMode="numeric" placeholder="e.g. 65" min={parseInt(form.currentAge) + 1 || 26} max={75} value={form.retirementAge} onChange={e => setField('retirementAge', e.target.value)} autoFocus />
+                <p className="field-hint">Must be older than {form.currentAge || 'your current age'} and no later than 75.</p>
               </div>
-
               {yearsToRetirement !== null && yearsToRetirement > 0 && (
                 <div className="sg-callout">
                   <div className="sg-icon">📅</div>
@@ -893,7 +524,6 @@ Your employer is contributing approximately <strong>{formatCurrency(sgAmount)} p
                   </div>
                 </div>
               )}
-
               <div className="btn-row">
                 <button className="btn-back" onClick={goBack}>← Back</button>
                 <button className="btn-next" onClick={goNext}>Continue →</button>
@@ -901,64 +531,35 @@ Your employer is contributing approximately <strong>{formatCurrency(sgAmount)} p
             </div>
           )}
 
-          {/* ── Step 5: Spending ──────────────────────────────── */}
+          {/* Step 5 */}
           {step === 5 && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">How much will<br />you spend?</h1>
               <p className="step-sub">Enter your target retirement spending. Use the ASFA standards as a starting point.</p>
-
-              {/* ASFA presets */}
               <div className="preset-row">
-                <button
-                  className={`preset-btn ${form.spendingAnnual === ASFA_COMFORTABLE ? 'active' : ''}`}
-                  onClick={() => setAsfaPreset(ASFA_COMFORTABLE)}
-                >
+                <button className={`preset-btn ${form.spendingAnnual === ASFA_COMFORTABLE ? 'active' : ''}`} onClick={() => setAsfaPreset(ASFA_COMFORTABLE)}>
                   <div className="preset-name">ASFA Comfortable</div>
                   <div className="preset-amount">{formatCurrency(ASFA_COMFORTABLE)}</div>
                   <div className="preset-freq">{formatCurrency(annualToFortnightly(ASFA_COMFORTABLE))} per fortnight</div>
                 </button>
-                <button
-                  className={`preset-btn ${form.spendingAnnual === ASFA_MODEST ? 'active' : ''}`}
-                  onClick={() => setAsfaPreset(ASFA_MODEST)}
-                >
+                <button className={`preset-btn ${form.spendingAnnual === ASFA_MODEST ? 'active' : ''}`} onClick={() => setAsfaPreset(ASFA_MODEST)}>
                   <div className="preset-name">ASFA Modest</div>
                   <div className="preset-amount">{formatCurrency(ASFA_MODEST)}</div>
                   <div className="preset-freq">{formatCurrency(annualToFortnightly(ASFA_MODEST))} per fortnight</div>
                 </button>
               </div>
-
-              {/* Bidirectional inputs */}
               <div className="spend-grid">
                 <div>
                   <label className="field-label">Annual spending</label>
-                  <input
-                    className="field-input"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="e.g. $51,000"
-                    value={form.spendingAnnualDisplay}
-                    onChange={e => handleSpendingAnnual(e.target.value)}
-                    onBlur={handleSpendingAnnualBlur}
-                  />
+                  <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $51,000" value={form.spendingAnnualDisplay} onChange={e => handleSpendingAnnual(e.target.value)} onBlur={handleSpendingAnnualBlur} />
                 </div>
                 <div className="spend-divider">↔</div>
                 <div>
                   <label className="field-label">Per fortnight</label>
-                  <input
-                    className="field-input"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="e.g. $1,962"
-                    value={form.spendingFortnightlyDisplay}
-                    onChange={e => handleSpendingFortnightly(e.target.value)}
-                    onBlur={handleSpendingFortnightlyBlur}
-                  />
+                  <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $1,962" value={form.spendingFortnightlyDisplay} onChange={e => handleSpendingFortnightly(e.target.value)} onBlur={handleSpendingFortnightlyBlur} />
                 </div>
               </div>
-              <p className="field-hint" style={{ marginTop: '-16px', marginBottom: '24px' }}>
-                In today's dollars. Inflation (2.5% p.a.) is applied automatically in your forecast.
-              </p>
-
+              <p className="field-hint" style={{ marginTop: '-16px', marginBottom: '24px' }}>In today's dollars. Inflation (2.5% p.a.) is applied automatically in your forecast.</p>
               <div className="btn-row">
                 <button className="btn-back" onClick={goBack}>← Back</button>
                 <button className="btn-next" onClick={goNext}>Review →</button>
@@ -966,93 +567,40 @@ Your employer is contributing approximately <strong>{formatCurrency(sgAmount)} p
             </div>
           )}
 
-          {/* ── Step 6: Review & confirm ──────────────────────── */}
+          {/* Step 6 */}
           {step === 6 && (
             <div>
               <h1 className="step-heading">Almost there,<br />{form.name}.</h1>
               <p className="step-sub">Check your details below. Hit "Run forecast" when you're ready.</p>
-
               <div className="review-card">
                 <div className="review-section-head">Personal</div>
-                <div className="review-row">
-                  <span className="review-key">Name</span>
-                  <span className="review-val">{form.name}</span>
-                </div>
-                <div className="review-row">
-                  <span className="review-key">Current age</span>
-                  <span className="review-val">{form.currentAge}</span>
-                </div>
-
+                <div className="review-row"><span className="review-key">Name</span><span className="review-val">{form.name}</span></div>
+                <div className="review-row"><span className="review-key">Current age</span><span className="review-val">{form.currentAge}</span></div>
                 <div className="review-section-head">Superannuation</div>
-                <div className="review-row">
-                  <span className="review-key">Current balance</span>
-                  <span className="review-val">{formatCurrency(form.superBalance)}</span>
-                </div>
-                {form.salary && (
-                  <div className="review-row">
-                    <span className="review-key">Annual salary</span>
-                    <span className="review-val">{formatCurrency(form.salary)}</span>
-                  </div>
-                )}
-                {sgAmount !== null && (
-                  <div className="review-row">
-                    <span className="review-key">SG contributions</span>
-                    <span className="review-val">{formatCurrency(sgAmount)}/fn ({formatCurrency(sgAmount * 26)}/yr)</span>
-                  </div>
-                )}
-
+                <div className="review-row"><span className="review-key">Current balance</span><span className="review-val">{formatCurrency(form.superBalance)}</span></div>
+                {form.salary && <div className="review-row"><span className="review-key">Annual salary</span><span className="review-val">{formatCurrency(form.salary)}</span></div>}
+                {sgAmount !== null && <div className="review-row"><span className="review-key">SG contributions</span><span className="review-val">{formatCurrency(sgAmount)}/fn ({formatCurrency(sgAmount * 26)}/yr)</span></div>}
                 <div className="review-section-head">Retirement plan</div>
-                <div className="review-row">
-                  <span className="review-key">Target retirement age</span>
-                  <span className="review-val">{form.retirementAge}</span>
-                </div>
-                <div className="review-row">
-                  <span className="review-key">Age Pension eligibility</span>
-                  <span className="review-val">Age 67</span>
-                </div>
-                <div className="review-row">
-                  <span className="review-key">Retirement spending</span>
-                  <span className="review-val">{formatCurrency(form.spendingFortnightly)}/fn · {formatCurrency(form.spendingAnnual)}/yr</span>
-                </div>
-
+                <div className="review-row"><span className="review-key">Target retirement age</span><span className="review-val">{form.retirementAge}</span></div>
+                <div className="review-row"><span className="review-key">Age Pension eligibility</span><span className="review-val">Age 67</span></div>
+                <div className="review-row"><span className="review-key">Retirement spending</span><span className="review-val">{formatCurrency(form.spendingFortnightly)}/fn · {formatCurrency(form.spendingAnnual)}/yr</span></div>
                 <div className="review-section-head">Assumptions (defaults)</div>
-                <div className="review-row">
-                  <span className="review-key">Homeowner</span>
-                  <span className="review-val">Yes</span>
-                </div>
-                <div className="review-row">
-                  <span className="review-key">Relationship status</span>
-                  <span className="review-val">Single</span>
-                </div>
-                <div className="review-row">
-                  <span className="review-key">Modelled to age</span>
-                  <span className="review-val">90</span>
-                </div>
+                <div className="review-row"><span className="review-key">Homeowner</span><span className="review-val">Yes</span></div>
+                <div className="review-row"><span className="review-key">Relationship status</span><span className="review-val">Single</span></div>
+                <div className="review-row"><span className="review-key">Modelled to age</span><span className="review-val">90</span></div>
               </div>
 
-              {error && (
-                <div className="error-msg">
-                  <span>⚠</span> {error}
-                </div>
-              )}
+              {error && <div className="error-msg"><span>⚠</span> {error}</div>}
 
               <div className="btn-row">
                 <button className="btn-back" onClick={goBack}>← Back</button>
-                <button
-                  className="btn-next gold"
-                  onClick={handleSubmit}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <><span className="spinner dark" />Running forecast…</>
-                  ) : (
-                    'Run my forecast →'
-                  )}
+                <button className="btn-next gold" onClick={handleSubmit} disabled={loading}>
+                  {loading ? <><span className="spinner dark" />Running forecast…</> : 'Run my forecast →'}
                 </button>
               </div>
 
               <p style={{ marginTop: '20px', fontSize: '12px', color: '#999', lineHeight: '1.6' }}>
-                This forecast is for general information purposes only and does not constitute financial advice. Results are projections based on modelled assumptions and are not guaranteed. Centrelink rules and superannuation laws change regularly — always verify your personal entitlements with Services Australia or a licensed financial adviser before making retirement decisions.
+                This forecast is for general information purposes only and does not constitute financial advice. Results are projections based on modelled assumptions and are not guaranteed. Always verify your entitlements with Services Australia or a licensed financial adviser.
               </p>
             </div>
           )}
