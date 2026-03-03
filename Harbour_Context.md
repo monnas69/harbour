@@ -6,13 +6,13 @@
 
 ## What is Harbour?
 
-Harbour is a DIY retirement planning web application for Australians aged 40–75. It provides Monte Carlo-based forecasting of retirement outcomes, integrating Centrelink Age Pension rules and ATO superannuation rules. It shows projections only — it does not provide financial advice.
+Harbour is a DIY retirement planning web application for Australians aged 25–75. It provides Monte Carlo-based forecasting of retirement outcomes, integrating Centrelink Age Pension rules and ATO superannuation rules. It shows projections only — it does not provide financial advice.
 
 **Previously called RetireSmart** during the design phase.
 
 ---
 
-## The Person Building It
+## The Person Building it
 
 - **Name:** Shayne (monnas69 on GitHub)
 - **OS:** Windows
@@ -27,19 +27,18 @@ Harbour is a DIY retirement planning web application for Australians aged 40–7
 
 | Layer | Technology | Notes |
 |---|---|---|
-| Framework | Next.js 16 (App Router) | JavaScript, no TypeScript |
-| Styling | Tailwind CSS | |
+| Framework | Next.js (App Router) | JavaScript, no TypeScript |
+| Styling | Tailwind CSS + inline styles | |
 | Linter | Biome | |
 | Database | Supabase (Postgres) | Hosted, managed |
 | Auth | Supabase Auth | Email + password, no magic links |
-| Forecast engine | Python 3.14 | Runs server-side via `child_process.spawn` |
+| Forecast engine | JavaScript | Ported from Python — runs server-side in API route |
 | Email | Resend | Not yet set up |
 | Payments | Stripe | Phase 3, not yet set up |
-| Hosting | Vercel | Not yet deployed |
+| Hosting | Vercel | ✅ Live at https://harbour-pi.vercel.app |
 | Domain | harbour.com.au | Not yet registered |
 
-**Python command on Shayne's machine:** `py` (not `python` or `python3`)
-**pip command:** `py -m pip install`
+**Important — Next.js 15 note:** `cookies()` must be awaited (`const cookieStore = await cookies()`) in all API routes.
 
 ---
 
@@ -51,28 +50,75 @@ Harbour is a DIY retirement planning web application for Australians aged 40–7
 
 ---
 
+## Vercel Deployment
+
+- **Live URL:** https://harbour-pi.vercel.app
+- **Repo:** https://github.com/monnas69/harbour (branch: master)
+- **Auto-deploys:** Yes — every push to master triggers a redeploy
+
+**Important:** After any deployment, always open a fresh browser tab rather than refreshing — stale cached chunks will cause a white screen crash.
+
+**Environment variables set in Vercel:**
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+ADMIN_EMAIL
+NEXT_PUBLIC_ADMIN_EMAIL
+```
+
+---
+
 ## Project File Structure
 
 ```
 harbour/
 ├── app/
 │   ├── api/
-│   │   └── forecast/
-│   │       └── route.js        ← POST endpoint, runs Python engine, saves to DB
+│   │   ├── forecast/
+│   │   │   └── route.js          ← POST endpoint, runs JS engine, saves to DB
+│   │   └── admin/
+│   │       └── config/
+│   │           └── route.js      ← POST endpoint, saves config to DB (service role)
 │   ├── auth/
 │   │   └── login/
-│   │       └── page.js         ← Sign in / create account (client component)
+│   │       └── page.js           ← Sign in / create account — full Harbour styling
 │   ├── dashboard/
-│   │   └── page.js             ← Saved forecasts list (server component)
-│   └── page.js                 ← Redirects to /auth/login
+│   │   └── page.js               ← Saved forecasts list, account details, sign out
+│   ├── forecast/
+│   │   ├── new/
+│   │   │   └── page.js           ← 6-step input form
+│   │   └── [id]/
+│   │       └── page.js           ← Results page with Monte Carlo chart
+│   ├── admin/
+│   │   └── page.js               ← Admin config dashboard (protected by ADMIN_EMAIL)
+│   ├── privacy/
+│   │   └── page.js               ← Privacy Policy page
+│   ├── layout.js                 ← Root layout — loads Playfair Display + DM Sans via Next.js fonts
+│   └── page.js                   ← Redirects to /harbour-landing.html
 ├── engine/
-│   ├── forecast.py             ← Monte Carlo simulation engine
-│   └── test.py                 ← Local test script for engine
+│   └── forecast.js               ← Monte Carlo simulation engine (JavaScript)
+├── public/
+│   └── harbour-landing.html      ← Landing page (served as static file)
 ├── lib/
-│   └── supabase.js             ← Browser Supabase client (createClient)
-├── middleware.js                ← Session management across all routes
-├── .env.local                  ← Supabase URL + anon key (never commit)
+│   └── supabase.js               ← Browser Supabase client (createClient)
+├── middleware.js                  ← Session management across all routes
+├── .env.local                    ← Supabase URL + anon key + service role key + admin email
 └── [standard Next.js files]
+```
+
+**Note:** Python engine files (`engine/forecast.py`, `engine/test.py`) have been removed. The JS engine in `engine/forecast.js` is the only forecast engine.
+
+---
+
+## Environment Variables (.env.local)
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://hjavfsgiynsgwncrzhjl.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...        ← Used by admin API route to bypass RLS
+ADMIN_EMAIL=...                      ← Server-side admin check
+NEXT_PUBLIC_ADMIN_EMAIL=...          ← Client-side admin check (same email)
 ```
 
 ---
@@ -139,7 +185,7 @@ inflation_rate                 2.5
 
 ## MVP Rules Summary
 
-**User inputs (MVP):** Name, current age (40–85), current super balance, target retirement age (> current age, max 75)
+**User inputs (MVP):** Name, current age (25–85), current super balance, annual salary (optional), target retirement age (> current age, max 75), annual retirement spending
 
 **Default assumptions:** Homeowner = true, single person, no other assessable assets
 
@@ -151,30 +197,74 @@ inflation_rate                 2.5
 3. Take the LOWER result of the two tests
 4. Pension cannot go below $0
 
-**Super taxation:** Withdrawals post-60 tax-free. Accumulation phase earnings net of 15% tax.
+**Super taxation:** Withdrawals post-60 tax-free. Accumulation phase earnings net of 15% tax (applied to returns only, not the whole balance).
 
-**Monte Carlo:** 1,000 runs, 6.5% accumulation return, 5.5% retirement return, 12% volatility, 2.5% inflation, modelled to age 90.
+**Monte Carlo:** 1,000 runs, 6.5% accumulation return, 5.5% retirement return, 12% volatility (9.6% in retirement phase — 80% of accumulation), 2.5% inflation, modelled to age 90. Seeded with seed 42 for reproducible results.
+
+---
+
+## Forecast Engine — Input/Output Shape
+
+### Inputs sent to JS engine (from `POST /api/forecast`):
+```json
+{
+  "name": "Margaret",
+  "current_age": 58,
+  "super_balance": 420000,
+  "salary": 80000,
+  "annual_spending": 51000,
+  "retirement_age": 65
+}
+```
+
+### Outputs returned by engine (saved to `forecasts.outputs`):
+```json
+{
+  "ages": [58, 59, ..., 90],
+  "p10": [...],
+  "p50": [...],
+  "p90": [...],
+  "retirement_balance_median": 669611,
+  "pension_annual": 2785,
+  "funds_last_p10": 81,
+  "funds_last_p50": 87,
+  "funds_last_p90": 90
+}
+```
 
 ---
 
 ## HTML Mockup Screens (design reference only)
 
-These are static HTML files created during the design phase. They are the visual reference for what the real Next.js pages should look like.
+These are static HTML files created during the design phase. They live in the repo root and are NOT served by Next.js (except `harbour-landing.html` which is in `public/`).
 
 | File | Description |
 |---|---|
-| `harbour-landing.html` | Landing page |
-| `harbour-input-v2.html` | 6-step input form |
-| `harbour-forecast-v2.html` | Forecast results + Monte Carlo chart |
-| `harbour-dashboard.html` | Account dashboard |
-| `harbour-admin.html` | Admin config dashboard |
+| `public/harbour-landing.html` | Landing page — live at `/` |
+| `harbour-input-v2.html` | 6-step input form (reference only) |
+| `harbour-forecast-v2.html` | Forecast results + Monte Carlo chart (reference only) |
+| `harbour-dashboard.html` | Account dashboard (reference only) |
+| `harbour-admin.html` | Admin config dashboard (reference only) |
 
-**Design language:** Navy (`#0D1F35`) + gold (`#C9A84C`) + cream (`#F5F0E8`). Fonts: Playfair Display (headings) + DM Sans (body).
+**Design language:** Navy (`#0D1F35`) + gold (`#C9A84C`) + cream (`#F5F0E8`). Fonts: Playfair Display (headings) + DM Sans (body). Fonts are loaded via Next.js font system (self-hosted — no Google Fonts CDN dependency).
 
 **Key UI decisions:**
 - Fortnightly figures shown first throughout (Australian convention)
-- Slide-in panel for save/auth on forecast screen
 - Stale forecast detection — flag forecasts generated before last config update
+- Admin page protected by `ADMIN_EMAIL` env variable
+- Admin page CSS classes use `adm-` prefix (not `ad-`) — ad blockers hide elements with `ad-` prefix
+
+---
+
+## Known Issues & Fixes Applied
+
+| Issue | Fix |
+|---|---|
+| `cookies()` must be awaited in Next.js 15 | `const cookieStore = await cookies()` in all API routes |
+| Python engine not supported on Vercel | Replaced with `engine/forecast.js` — pure JS, no dependencies |
+| Admin page white screen with AdBlock | CSS classes renamed from `ad-` to `adm-` prefix |
+| Fonts blocked by ad blockers | Fonts loaded via Next.js font system in `app/layout.js` |
+| Stale chunk crash after deployment | Always open a fresh tab after deployment — never just refresh |
 
 ---
 
@@ -182,25 +272,69 @@ These are static HTML files created during the design phase. They are the visual
 
 ### ✓ Done
 - All HTML mockup screens (landing, input, forecast, dashboard, admin)
-- Next.js project created and running locally
+- Next.js project created and deployed to Vercel
 - Supabase project created, database tables created, config seeded
 - Supabase Auth working (email + password sign up / sign in)
-- Dashboard page — shows saved forecasts, pulls from DB
-- Python forecast engine — Monte Carlo simulation with full Centrelink calc
-- Forecast API route (`POST /api/forecast`) — authenticated, pulls config from DB, runs Python, saves result
+- Forecast input form — 6-step (`app/forecast/new/page.js`)
+  - Name, age, super balance, optional salary with live SG callout
+  - ASFA Comfortable/Modest presets, bidirectional annual ↔ fortnightly spend
+  - Review & confirm step, posts to `/api/forecast`
+- JavaScript forecast engine (`engine/forecast.js`)
+  - Exact port of original Python engine
+  - Seeded PRNG (mulberry32, seed 42) for reproducible results
+  - Retirement phase volatility 9.6% (80% of accumulation)
+  - Pension calculated at age-67 balance (not retirement balance)
+  - `funds_last_p10/p50/p90` — age when money runs out per scenario
+- Forecast API route (`POST /api/forecast`) — authenticated, pulls config from DB, runs JS engine, saves result, returns `{ id, ...outputs }`
+- Forecast results page (`app/forecast/[id]/page.js`)
+  - Loads forecast from Supabase by ID
+  - 3 stat cards: super at retirement, Age Pension, funds last age
+  - Chart.js line chart: p10/p50/p90 bands + spending line + Age Pension vertical marker
+  - Plain English summary paragraph
+  - Disclaimer
+- Dashboard (`app/dashboard/page.js`)
+  - Greeting (morning/afternoon/evening)
+  - Rate change notice (auto-shown when forecasts predate latest config update)
+  - Upgrade banner (Phase 3 placeholder)
+  - Forecast cards with real outputs (super/pension/funds-last), delete button
+  - Empty state
+  - Account details, plan info
+  - Working sign out
+- Admin config dashboard (`app/admin/page.js`)
+  - Protected by `ADMIN_EMAIL` env variable
+  - All 22 config keys grouped into 8 collapsible sections
+  - Inline click-to-edit with Save/Cancel, Enter/Escape keyboard support
+  - Due-date indicators (green/amber/red) per row and sidebar
+  - Pension total auto-calculated
+  - Session change log
+  - Toast notifications
+  - Saves via `POST /api/admin/config` using Supabase service role key
+- Landing page (`public/harbour-landing.html`)
+  - Hero with live Chart.js sparkline preview
+  - Trust strip, How it works, What you'll see, CTA
+  - Served at root URL `/`
+- Login page — full Harbour design (navy/gold/cream)
+- Privacy Policy (`app/privacy/page.js`) — live at `/privacy`
+  - Australian Privacy Act compliant, 13 sections
+  - Linked from landing page footer and login page
+- `app/layout.js` — Playfair Display + DM Sans loaded via Next.js font system
+- Vercel deployment live and working end to end
 
-### → Next up
-- Forecast input form (Next.js version of the 6-step HTML mockup)
-- Forecast results page (Next.js version wired to real API data)
-- Connect sign-in/sign-out properly to dashboard
-- Deploy to Vercel
-- Register domain
+### → Next up (before launch)
+- Terms of Service page
+- Password reset flow (Resend email not yet wired)
+- Email confirmation — currently OFF in Supabase Auth, turn ON before launch
+- Domain registration — harbour.com.au (check VentraIP)
+- Verify forecast figures are correct against manual calculations
+- Performance — forecast takes ~7 seconds (Vercel cold start + 1,000 simulations)
 
 ### Phase 3 (post-launch)
 - Stripe integration + paid tier
 - Partner / couples details
 - PDF export
 - Forecast re-run prompt
+- Adjustable assumptions (return rates, inflation, longevity)
+- Mobile responsive polish (iOS Safari)
 
 ### Deferred
 - Couples config in admin dashboard (add when partner feature built)
@@ -227,10 +361,11 @@ These are static HTML files created during the design phase. They are the visual
 
 ## Compliance Notes
 
-- Privacy Policy required before collecting user data (Australian Privacy Act)
-- Terms of Service required — must frame as general information, not financial advice
-- ABN required before charging
-- AFSL — current framing (general information with disclaimers) does not require licence. Confirm with lawyer before scaling.
+- Privacy Policy ✅ live at `/privacy` — covers Australian Privacy Act 1988
+- Terms of Service — required before launch, not yet built
+- ABN required before charging users (Phase 3)
+- AFSL — current general information framing does not require a licence. Confirm with lawyer before scaling.
+- Email: `privacy@harbour.com.au` referenced in Privacy Policy — set up before launch
 
 ---
 
@@ -240,4 +375,4 @@ These are static HTML files created during the design phase. They are the visual
 
 ---
 
-*Harbour | Context Document | February 2026 | Confidential*
+*Harbour | Context Document | March 2026 | Confidential*
