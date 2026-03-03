@@ -318,8 +318,10 @@ export default function LoginPage() {
             </p>
 
             <p className="login-disclaimer">
-              This service is for general information purposes only and does not
-              constitute financial advice.
+              By creating an account you agree to our{' '}
+<a href="/privacy" style={{color:'#c9a84c'}}>Privacy Policy</a>
+{' '}and{' '}
+<a href="/terms" style={{color:'#c9a84c'}}>Terms of Service</a>.
             </p>
           </div>
         </main>
