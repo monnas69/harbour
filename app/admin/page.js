@@ -113,63 +113,57 @@ const fmtDate = (iso) => {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function AdminPage() {
-  const router = useRouter();
-  const [config, setConfig]       = useState({});   // key → row object
-  const [loading, setLoading]     = useState(true);
-  const [editing, setEditing]     = useState(null); // key being edited
-  const [editVal, setEditVal]     = useState('');
-  const [saving, setSaving]       = useState(false);
+  const router  = useRouter();
+
+  // ── Supabase client created at component level so it's available everywhere
+  const supabase = createClient();
+
+  const [config, setConfig]             = useState({});
+  const [loading, setLoading]           = useState(true);
+  const [editing, setEditing]           = useState(null);
+  const [editVal, setEditVal]           = useState('');
+  const [saving, setSaving]             = useState(false);
   const [openSections, setOpenSections] = useState(new Set(['pension']));
   const [activeSection, setActiveSection] = useState('pension');
-  const [toast, setToast]         = useState('');
+  const [toast, setToast]               = useState('');
   const [toastVisible, setToastVisible] = useState(false);
-  const [log, setLog]             = useState([]);
-  const [lastSaved, setLastSaved] = useState('');
+  const [log, setLog]                   = useState([]);
+  const [lastSaved, setLastSaved]       = useState('');
 
   // ── Load config ─────────────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      async function load() {
-  try {
-    const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { router.push('/auth/login'); return; }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { router.push('/auth/login'); return; }
 
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-    if (adminEmail && session.user.email !== adminEmail) {
-      router.push('/dashboard');
-      return;
-    }
+        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+        if (adminEmail && session.user.email !== adminEmail) {
+          router.push('/dashboard');
+          return;
+        }
 
-    const { data: rows, error } = await supabase
-      .from('config')
-      .select('*');
+        const { data: rows, error } = await supabase
+          .from('config')
+          .select('*');
 
-    if (error) { console.error(error); setLoading(false); return; }
+        if (error) {
+          console.error('Config load error:', error);
+          setLoading(false);
+          return;
+        }
 
-    const map = {};
-    rows.forEach(r => { map[r.key] = r; });
-    setConfig(map);
-    setLoading(false);
-  } catch (err) {
-    console.error('Admin load error:', err);
-    setLoading(false);
-  }
-}
-
-      const { data: rows, error } = await supabase
-        .from('config')
-        .select('*');
-
-      if (error) { console.error(error); setLoading(false); return; }
-
-      const map = {};
-      rows.forEach(r => { map[r.key] = r; });
-      setConfig(map);
-      setLoading(false);
+        const map = {};
+        rows.forEach(r => { map[r.key] = r; });
+        setConfig(map);
+        setLoading(false);
+      } catch (err) {
+        console.error('Admin load error:', err);
+        setLoading(false);
+      }
     }
     load();
-  }, [router]);
+  }, []);
 
   // ── Editing ──────────────────────────────────────────────────────────────────
   const startEdit = (key) => {
@@ -196,27 +190,22 @@ export default function AdminPage() {
 
       if (!res.ok) throw new Error('Save failed');
 
-      // Update local state
       const now = new Date().toISOString().split('T')[0];
       setConfig(prev => ({
         ...prev,
         [key]: { ...prev[key], value: val, last_updated: now },
       }));
 
-      // Add to log
-      const label = config[key]?.label || key;
+      const label   = config[key]?.label || key;
       const display = formatValue(key, val);
       const dateStr = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
       setLog(prev => [{ label, display, dateStr, id: Date.now() }, ...prev]);
 
-      // Toast
       showToast('Saved: ' + label + ' → ' + display);
-
-      // Last saved time
       setLastSaved('Last saved ' + new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }));
-
       cancelEdit();
     } catch (err) {
+      console.error('Save error:', err);
       showToast('Error saving — try again');
     } finally {
       setSaving(false);
@@ -247,14 +236,14 @@ export default function AdminPage() {
     }
   };
 
-  // ── Pension total ─────────────────────────────────────────────────────────
+  // ── Pension total ──────────────────────────────────────────────────────────
   const pensionTotal = (
     (parseFloat(config['pension_base_single']?.value) || 0) +
     (parseFloat(config['pension_supplement_single']?.value) || 0) +
     (parseFloat(config['pension_energy_single']?.value) || 0)
   ).toFixed(2);
 
-  // ── Status summary ────────────────────────────────────────────────────────
+  // ── Status summary ─────────────────────────────────────────────────────────
   const allNextDues = Object.values(config).map(r => r.next_due).filter(Boolean);
   const now = new Date();
   const dueSoon = allNextDues.filter(d => {
@@ -266,10 +255,14 @@ export default function AdminPage() {
     return days >= 60;
   }).length;
 
+  // ── Loading state ──────────────────────────────────────────────────────────
   if (loading) {
     return (
       <>
-        <style>{styles}</style>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+          ${styles}
+        `}</style>
         <div style={{ minHeight: '100vh', background: '#0d1f35', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="ad-spinner" />
         </div>
@@ -277,22 +270,24 @@ export default function AdminPage() {
     );
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
         ${styles}
       `}</style>
 
       <div className="ad-root">
 
-        {/* ── Nav ─────────────────────────────────────────────── */}
+        {/* Nav */}
         <nav className="ad-nav">
           <div className="ad-nav-left">
             <a href="/dashboard" className="ad-logo">
               <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
                 <circle cx="18" cy="18" r="17" stroke="#c9a84c" strokeWidth="1.5"/>
-                <path d="M8 26 Q18 10 28 26" stroke="#c9a84c" strokeWidth="1.5" fill="none"/>
+                <line x1="18" y1="7" x2="18" y2="29" stroke="#c9a84c" strokeWidth="1.5"/>
+                <line x1="11" y1="14" x2="25" y2="14" stroke="#c9a84c" strokeWidth="1.5"/>
                 <path d="M11 29 Q18 24 25 29" stroke="#c9a84c" strokeWidth="1.5" fill="none"/>
               </svg>
               <span className="ad-logo-text">Harbour</span>
@@ -307,7 +302,7 @@ export default function AdminPage() {
 
         <div className="ad-layout">
 
-          {/* ── Sidebar ───────────────────────────────────────── */}
+          {/* Sidebar */}
           <aside className="ad-sidebar">
             <div className="ad-sidebar-label">Config sections</div>
             {SECTIONS.map(s => {
@@ -340,7 +335,7 @@ export default function AdminPage() {
             </button>
           </aside>
 
-          {/* ── Main ──────────────────────────────────────────── */}
+          {/* Main */}
           <main className="ad-main">
 
             <div className="ad-page-header">
@@ -393,7 +388,6 @@ export default function AdminPage() {
 
                   {isOpen && (
                     <div className="ad-config-table">
-                      {/* Table header */}
                       <div className="ad-table-header">
                         <div style={{ padding: '8px 18px' }}>Field</div>
                         <div style={{ padding: '8px 12px' }}>Current value</div>
@@ -434,16 +428,10 @@ export default function AdminPage() {
                                     autoFocus
                                   />
                                   <div className="ad-value-actions">
-                                    <button
-                                      className="ad-btn-save"
-                                      onClick={() => saveEdit(key)}
-                                      disabled={saving}
-                                    >
+                                    <button className="ad-btn-save" onClick={() => saveEdit(key)} disabled={saving}>
                                       {saving ? '…' : 'Save'}
                                     </button>
-                                    <button className="ad-btn-cancel" onClick={cancelEdit}>
-                                      Cancel
-                                    </button>
+                                    <button className="ad-btn-cancel" onClick={cancelEdit}>Cancel</button>
                                   </div>
                                 </div>
                               )}
@@ -459,7 +447,7 @@ export default function AdminPage() {
                         );
                       })}
 
-                      {/* Pension total auto-calc row */}
+                      {/* Pension total auto-calc */}
                       {section.id === 'pension' && (
                         <div className="ad-config-row" style={{ background: 'rgba(201,168,76,0.03)' }}>
                           <div className="ad-row-label">
@@ -487,13 +475,11 @@ export default function AdminPage() {
             {/* Change log */}
             <div className="ad-change-log" id="section-log">
               <div className="ad-log-title">Recent changes</div>
-
               {log.length === 0 && (
                 <div style={{ color: '#8a9bb0', fontSize: 13, fontWeight: 300, padding: '12px 0' }}>
                   No changes this session. Changes you make above will appear here.
                 </div>
               )}
-
               {log.map(entry => (
                 <div key={entry.id} className="ad-log-entry">
                   <div className="ad-log-dot" />
@@ -528,6 +514,7 @@ const styles = `
     color: #f5f0e8;
     min-height: 100vh;
     font-size: 14px;
+    position: relative;
   }
 
   .ad-root::before {
@@ -540,7 +527,6 @@ const styles = `
     pointer-events: none; z-index: 0;
   }
 
-  /* Nav */
   .ad-nav {
     display: flex; align-items: center; justify-content: space-between;
     padding: 16px 32px;
@@ -551,9 +537,7 @@ const styles = `
   }
 
   .ad-nav-left { display: flex; align-items: center; gap: 16px; }
-
   .ad-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-
   .ad-logo-text {
     font-family: 'Playfair Display', serif;
     font-size: 18px; font-weight: 600;
@@ -573,10 +557,8 @@ const styles = `
   .ad-nav-link:hover { color: #f5f0e8; }
   .ad-last-saved { font-size: 12px; color: rgba(138,155,176,0.6); }
 
-  /* Layout */
   .ad-layout { display: flex; min-height: calc(100vh - 57px); position: relative; z-index: 1; }
 
-  /* Sidebar */
   .ad-sidebar {
     width: 220px; flex-shrink: 0;
     border-right: 1px solid rgba(201,168,76,0.12);
@@ -591,7 +573,6 @@ const styles = `
     color: #8a9bb0; font-weight: 500;
     padding: 0 20px; margin-bottom: 8px; margin-top: 20px;
   }
-
   .ad-sidebar-label:first-child { margin-top: 0; }
 
   .ad-sidebar-item {
@@ -602,57 +583,39 @@ const styles = `
     width: 100%; text-align: left; font-family: 'DM Sans', sans-serif;
     border-left: 2px solid transparent;
   }
-
   .ad-sidebar-item:hover { color: #f5f0e8; background: rgba(255,255,255,0.03); }
+  .ad-sidebar-item.active { color: #f5f0e8; background: rgba(201,168,76,0.07); border-left-color: #c9a84c; }
 
-  .ad-sidebar-item.active {
-    color: #f5f0e8; background: rgba(201,168,76,0.07);
-    border-left-color: #c9a84c;
-  }
+  .ad-sidebar-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .ad-dot-green { background: #5b9e6e; }
+  .ad-dot-amber { background: #d4922a; }
+  .ad-dot-red   { background: #c0614a; }
 
-  .ad-sidebar-dot {
-    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-  }
-
-  .ad-dot-green  { background: #5b9e6e; }
-  .ad-dot-amber  { background: #d4922a; }
-  .ad-dot-red    { background: #c0614a; }
-
-  /* Main */
   .ad-main { flex: 1; padding: 32px 36px; max-width: 820px; overflow-x: hidden; }
 
-  /* Page header */
   .ad-page-header { margin-bottom: 28px; }
-
   .ad-page-eyebrow {
     font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
     color: #c9a84c; font-weight: 500; margin-bottom: 6px;
   }
-
   .ad-page-title {
     font-family: 'Playfair Display', serif;
     font-size: 26px; font-weight: 600; color: #f5f0e8;
     margin-bottom: 6px; line-height: 1.2;
   }
-
   .ad-page-sub { font-size: 13px; color: #8a9bb0; font-weight: 300; line-height: 1.5; }
 
-  /* Status row */
   .ad-status-row { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
-
   .ad-status-chip {
     display: flex; align-items: center; gap: 7px;
     background: rgba(20,41,68,0.8);
     border: 1px solid rgba(201,168,76,0.12);
-    border-radius: 4px; padding: 10px 14px;
-    font-size: 12px;
+    border-radius: 4px; padding: 10px 14px; font-size: 12px;
   }
-
   .ad-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .ad-chip-label { color: #8a9bb0; }
   .ad-chip-val { color: #f5f0e8; font-weight: 500; margin-left: 2px; }
 
-  /* Config section */
   .ad-config-section { margin-bottom: 32px; }
 
   .ad-section-head {
@@ -662,10 +625,6 @@ const styles = `
     border: 1px solid rgba(201,168,76,0.12);
     border-radius: 6px 6px 0 0;
     cursor: pointer; user-select: none;
-  }
-
-  .ad-section-head:has(+ :not(.ad-config-table)) {
-    border-radius: 6px;
   }
 
   .ad-section-head-left { display: flex; align-items: center; gap: 10px; }
@@ -681,22 +640,19 @@ const styles = `
 
   .ad-section-title-text { font-weight: 500; color: #f5f0e8; font-size: 14px; }
   .ad-section-sub-text { font-size: 11px; color: #8a9bb0; margin-top: 1px; }
-
   .ad-section-head-right { display: flex; align-items: center; gap: 10px; }
 
   .ad-due-badge {
     font-size: 11px; padding: 3px 10px; border-radius: 20px;
     font-weight: 500; letter-spacing: 0.03em;
   }
-
-  .ad-due-green { background: rgba(91,158,110,0.1); color: #7ec896; border: 1px solid rgba(91,158,110,0.25); }
-  .ad-due-amber { background: rgba(212,146,42,0.1); color: #f0b860; border: 1px solid rgba(212,146,42,0.3); }
-  .ad-due-red   { background: rgba(192,97,74,0.1);  color: #e08878; border: 1px solid rgba(192,97,74,0.3); }
+  .ad-due-green { background: rgba(91,158,110,0.1);  color: #7ec896; border: 1px solid rgba(91,158,110,0.25); }
+  .ad-due-amber { background: rgba(212,146,42,0.1);  color: #f0b860; border: 1px solid rgba(212,146,42,0.3); }
+  .ad-due-red   { background: rgba(192,97,74,0.1);   color: #e08878; border: 1px solid rgba(192,97,74,0.3); }
 
   .ad-chevron { color: #8a9bb0; font-size: 12px; transition: transform 0.2s; }
   .ad-chevron.open { transform: rotate(180deg); }
 
-  /* Config table */
   .ad-config-table {
     border: 1px solid rgba(201,168,76,0.12); border-top: none;
     border-radius: 0 0 6px 6px; overflow: hidden;
@@ -713,7 +669,6 @@ const styles = `
     border-bottom: 1px solid rgba(255,255,255,0.04);
     align-items: center;
   }
-
   .ad-config-row:last-child { border-bottom: none; }
 
   .ad-row-label { padding: 14px 18px; font-size: 13px; color: #8a9bb0; font-weight: 300; line-height: 1.4; }
@@ -729,10 +684,8 @@ const styles = `
     border: 1px solid rgba(201,168,76,0.15);
     border-radius: 4px; padding: 8px 12px;
     cursor: pointer; transition: all 0.2s;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
   }
-
   .ad-value-display:hover { border-color: rgba(201,168,76,0.4); background: rgba(13,31,53,0.9); }
 
   .ad-edit-icon { color: #8a9bb0; font-size: 11px; flex-shrink: 0; opacity: 0; transition: opacity 0.2s; }
@@ -746,15 +699,12 @@ const styles = `
     box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
   }
 
-  .ad-value-actions {
-    display: flex; align-items: center; gap: 6px; margin-top: 6px;
-  }
+  .ad-value-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 
   .ad-btn-save {
     background: #c9a84c; border: none; color: #0d1f35;
     font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
-    padding: 5px 12px; border-radius: 3px; cursor: pointer;
-    transition: background 0.2s;
+    padding: 5px 12px; border-radius: 3px; cursor: pointer; transition: background 0.2s;
   }
   .ad-btn-save:hover:not(:disabled) { background: #e8cc88; }
   .ad-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -768,64 +718,42 @@ const styles = `
   .ad-btn-cancel:hover { color: #f5f0e8; }
 
   .ad-meta-cell {
-    padding: 10px 14px;
-    font-size: 11px; color: #8a9bb0;
+    padding: 10px 14px; font-size: 11px; color: #8a9bb0;
     text-align: center; line-height: 1.5;
     border-left: 1px solid rgba(255,255,255,0.04);
   }
-
   .ad-last-updated { margin-bottom: 3px; }
   .ad-next-due { font-weight: 500; }
   .ad-next-due.ad-due-amber { color: #f0b860; }
   .ad-next-due.ad-due-green { color: #7ec896; }
   .ad-next-due.ad-due-red   { color: #e08878; }
 
-  /* Change log */
-  .ad-change-log {
-    margin-top: 40px; padding-top: 28px;
-    border-top: 1px solid rgba(201,168,76,0.12);
-  }
+  .ad-change-log { margin-top: 40px; padding-top: 28px; border-top: 1px solid rgba(201,168,76,0.12); }
 
   .ad-log-title {
     font-family: 'Playfair Display', serif;
-    font-size: 18px; font-weight: 600; color: #f5f0e8;
-    margin-bottom: 20px;
+    font-size: 18px; font-weight: 600; color: #f5f0e8; margin-bottom: 20px;
   }
 
   .ad-log-entry {
     display: flex; align-items: flex-start; gap: 12px;
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    font-size: 13px;
+    padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px;
   }
-
   .ad-log-entry:last-child { border-bottom: none; }
 
-  .ad-log-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #c9a84c; flex-shrink: 0; margin-top: 4px;
-  }
-
+  .ad-log-dot { width: 8px; height: 8px; border-radius: 50%; background: #c9a84c; flex-shrink: 0; margin-top: 4px; }
   .ad-log-text { flex: 1; color: #8a9bb0; font-weight: 300; line-height: 1.5; }
   .ad-log-text strong { color: #f5f0e8; font-weight: 500; }
-
   .ad-log-time { font-size: 11px; color: #8a9bb0; white-space: nowrap; margin-top: 2px; }
 
-  /* Toast */
   .ad-toast {
     position: fixed; bottom: 24px; right: 24px; z-index: 999;
-    background: #142944;
-    border: 1px solid rgba(91,158,110,0.4);
-    color: #7ec896;
-    font-size: 13px; padding: 10px 18px; border-radius: 4px;
-    opacity: 0; transform: translateY(8px);
-    transition: all 0.25s;
-    pointer-events: none;
+    background: #142944; border: 1px solid rgba(91,158,110,0.4);
+    color: #7ec896; font-size: 13px; padding: 10px 18px; border-radius: 4px;
+    opacity: 0; transform: translateY(8px); transition: all 0.25s; pointer-events: none;
   }
-
   .ad-toast.visible { opacity: 1; transform: translateY(0); }
 
-  /* Spinner */
   .ad-spinner {
     width: 36px; height: 36px;
     border: 2px solid rgba(201,168,76,0.2);
@@ -833,10 +761,8 @@ const styles = `
     border-radius: 50%;
     animation: ad-spin 0.7s linear infinite;
   }
-
   @keyframes ad-spin { to { transform: rotate(360deg); } }
 
-  /* Responsive */
   @media (max-width: 768px) {
     .ad-sidebar { display: none; }
     .ad-main { padding: 24px 16px; }
