@@ -87,13 +87,13 @@ const formatValue = (key, val) => {
 };
 
 const dueBadgeClass = (nextDue) => {
-  if (!nextDue) return 'ad-due-green';
+  if (!nextDue) return 'adm-due-green';
   const d = new Date(nextDue);
   const now = new Date();
   const days = (d - now) / (1000 * 60 * 60 * 24);
-  if (days < 0) return 'ad-due-red';
-  if (days < 60) return 'ad-due-amber';
-  return 'ad-due-green';
+  if (days < 0) return 'adm-due-red';
+  if (days < 60) return 'adm-due-amber';
+  return 'adm-due-green';
 };
 
 const dueBadgeText = (nextDue) => {
@@ -261,7 +261,7 @@ export default function AdminPage() {
       <>
         <style>{styles}</style>
         <div style={{ minHeight: '100vh', background: '#0d1f35', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="ad-spinner" />
+          <div className="adm-spinner" />
         </div>
       </>
     );
@@ -272,57 +272,57 @@ export default function AdminPage() {
     <>
       <style>{styles}</style>
 
-      <div className="ad-root">
+      <div className="adm-root">
 
         {/* Nav */}
-        <nav className="ad-nav">
-          <div className="ad-nav-left">
-            <a href="/dashboard" className="ad-logo">
+        <nav className="adm-nav">
+          <div className="adm-nav-left">
+            <a href="/dashboard" className="adm-logo">
               <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
                 <circle cx="18" cy="18" r="17" stroke="#c9a84c" strokeWidth="1.5"/>
                 <line x1="18" y1="7" x2="18" y2="29" stroke="#c9a84c" strokeWidth="1.5"/>
                 <line x1="11" y1="14" x2="25" y2="14" stroke="#c9a84c" strokeWidth="1.5"/>
                 <path d="M11 29 Q18 24 25 29" stroke="#c9a84c" strokeWidth="1.5" fill="none"/>
               </svg>
-              <span className="ad-logo-text">Harbour</span>
+              <span className="adm-logo-text">Harbour</span>
             </a>
-            <span className="ad-admin-badge">Admin</span>
+            <span className="adm-admin-badge">Admin</span>
           </div>
-          <div className="ad-nav-right">
-            {lastSaved && <span className="ad-last-saved">{lastSaved}</span>}
-            <a href="/dashboard" className="ad-nav-link">← Back to app</a>
+          <div className="adm-nav-right">
+            {lastSaved && <span className="adm-last-saved">{lastSaved}</span>}
+            <a href="/dashboard" className="adm-nav-link">← Back to app</a>
           </div>
         </nav>
 
-        <div className="ad-layout">
+        <div className="adm-layout">
 
           {/* Sidebar */}
-          <aside className="ad-sidebar">
-            <div className="ad-sidebar-label">Config sections</div>
+          <aside className="adm-sidebar">
+            <div className="adm-sidebar-label">Config sections</div>
             {SECTIONS.map(s => {
               const sectionRows = s.keys.map(k => config[k]).filter(Boolean);
               const worstDue = sectionRows.reduce((worst, row) => {
                 if (!row.next_due) return worst;
                 const cls = dueBadgeClass(row.next_due);
-                if (cls === 'ad-due-red') return 'red';
-                if (cls === 'ad-due-amber' && worst !== 'red') return 'amber';
+                if (cls === 'adm-due-red') return 'red';
+                if (cls === 'adm-due-amber' && worst !== 'red') return 'amber';
                 return worst;
               }, 'green');
 
               return (
                 <button
                   key={s.id}
-                  className={`ad-sidebar-item${activeSection === s.id ? ' active' : ''}`}
+                  className={`adm-sidebar-item${activeSection === s.id ? ' active' : ''}`}
                   onClick={() => scrollToSection(s.id)}
                 >
                   <span>{s.title}</span>
-                  <span className={`ad-sidebar-dot ad-dot-${worstDue}`} />
+                  <span className={`adm-sidebar-dot adm-dot-${worstDue}`} />
                 </button>
               );
             })}
-            <div className="ad-sidebar-label">History</div>
+            <div className="adm-sidebar-label">History</div>
             <button
-              className={`ad-sidebar-item${activeSection === 'log' ? ' active' : ''}`}
+              className={`adm-sidebar-item${activeSection === 'log' ? ' active' : ''}`}
               onClick={() => scrollToSection('log')}
             >
               <span>Change log</span>
@@ -330,25 +330,25 @@ export default function AdminPage() {
           </aside>
 
           {/* Main */}
-          <main className="ad-main">
+          <main className="adm-main">
 
-            <div className="ad-page-header">
-              <div className="ad-page-eyebrow">Admin</div>
-              <h1 className="ad-page-title">Configuration</h1>
-              <p className="ad-page-sub">All figures used in the forecast engine. Click any value to edit. Changes take effect on the next forecast run.</p>
+            <div className="adm-page-header">
+              <div className="adm-page-eyebrow">Admin</div>
+              <h1 className="adm-page-title">Configuration</h1>
+              <p className="adm-page-sub">All figures used in the forecast engine. Click any value to edit. Changes take effect on the next forecast run.</p>
             </div>
 
             {/* Status summary */}
-            <div className="ad-status-row">
-              <div className="ad-status-chip">
-                <div className="ad-chip-dot" style={{ background: '#d4922a' }} />
-                <span className="ad-chip-label">Due soon</span>
-                <span className="ad-chip-val">{dueSoon} items</span>
+            <div className="adm-status-row">
+              <div className="adm-status-chip">
+                <div className="adm-chip-dot" style={{ background: '#d4922a' }} />
+                <span className="adm-chip-label">Due soon</span>
+                <span className="adm-chip-val">{dueSoon} items</span>
               </div>
-              <div className="ad-status-chip">
-                <div className="ad-chip-dot" style={{ background: '#5b9e6e' }} />
-                <span className="ad-chip-label">Up to date</span>
-                <span className="ad-chip-val">{upToDate} items</span>
+              <div className="adm-status-chip">
+                <div className="adm-chip-dot" style={{ background: '#5b9e6e' }} />
+                <span className="adm-chip-label">Up to date</span>
+                <span className="adm-chip-val">{upToDate} items</span>
               </div>
             </div>
 
@@ -359,30 +359,30 @@ export default function AdminPage() {
               const worstDue = sectionRows.reduce((worst, row) => {
                 if (!row.next_due) return worst;
                 const cls = dueBadgeClass(row.next_due);
-                if (cls === 'ad-due-red') return 'ad-due-red';
-                if (cls === 'ad-due-amber' && worst !== 'ad-due-red') return 'ad-due-amber';
+                if (cls === 'adm-due-red') return 'adm-due-red';
+                if (cls === 'adm-due-amber' && worst !== 'adm-due-red') return 'adm-due-amber';
                 return worst;
-              }, 'ad-due-green');
+              }, 'adm-due-green');
 
               return (
-                <div key={section.id} className="ad-config-section" id={`section-${section.id}`}>
-                  <div className="ad-section-head" onClick={() => toggleSection(section.id)}>
-                    <div className="ad-section-head-left">
-                      <div className="ad-section-icon">{section.icon}</div>
+                <div key={section.id} className="adm-config-section" id={`section-${section.id}`}>
+                  <div className="adm-section-head" onClick={() => toggleSection(section.id)}>
+                    <div className="adm-section-headm-left">
+                      <div className="adm-section-icon">{section.icon}</div>
                       <div>
-                        <div className="ad-section-title-text">{section.title}</div>
-                        <div className="ad-section-sub-text">{section.sub}</div>
+                        <div className="adm-section-title-text">{section.title}</div>
+                        <div className="adm-section-sub-text">{section.sub}</div>
                       </div>
                     </div>
-                    <div className="ad-section-head-right">
-                      <span className={`ad-due-badge ${worstDue}`}>{dueBadgeText(sectionRows[0]?.next_due)}</span>
-                      <span className={`ad-chevron${isOpen ? ' open' : ''}`}>▾</span>
+                    <div className="adm-section-headm-right">
+                      <span className={`adm-due-badge ${worstDue}`}>{dueBadgeText(sectionRows[0]?.next_due)}</span>
+                      <span className={`adm-chevron${isOpen ? ' open' : ''}`}>▾</span>
                     </div>
                   </div>
 
                   {isOpen && (
-                    <div className="ad-config-table">
-                      <div className="ad-table-header">
+                    <div className="adm-config-table">
+                      <div className="adm-table-header">
                         <div style={{ padding: '8px 18px' }}>Field</div>
                         <div style={{ padding: '8px 12px' }}>Current value</div>
                         <div style={{ padding: '8px 14px', textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.04)' }}>Last updated / Next due</div>
@@ -395,22 +395,22 @@ export default function AdminPage() {
                         const display = formatValue(key, row.value);
 
                         return (
-                          <div key={key} className="ad-config-row">
-                            <div className="ad-row-label">
+                          <div key={key} className="adm-config-row">
+                            <div className="adm-row-label">
                               <strong>{row.label}</strong>
-                              <span className="ad-row-key">{key}</span>
+                              <span className="adm-row-key">{key}</span>
                             </div>
 
-                            <div className="ad-value-cell">
+                            <div className="adm-value-cell">
                               {!isEditingThis ? (
-                                <div className="ad-value-display" onClick={() => startEdit(key)}>
+                                <div className="adm-value-display" onClick={() => startEdit(key)}>
                                   <span>{display}</span>
-                                  <span className="ad-edit-icon">✎</span>
+                                  <span className="adm-edit-icon">✎</span>
                                 </div>
                               ) : (
                                 <div>
                                   <input
-                                    className="ad-value-input"
+                                    className="adm-value-input"
                                     type="number"
                                     step="any"
                                     value={editVal}
@@ -421,19 +421,19 @@ export default function AdminPage() {
                                     }}
                                     autoFocus
                                   />
-                                  <div className="ad-value-actions">
-                                    <button className="ad-btn-save" onClick={() => saveEdit(key)} disabled={saving}>
+                                  <div className="adm-value-actions">
+                                    <button className="adm-btn-save" onClick={() => saveEdit(key)} disabled={saving}>
                                       {saving ? '…' : 'Save'}
                                     </button>
-                                    <button className="ad-btn-cancel" onClick={cancelEdit}>Cancel</button>
+                                    <button className="adm-btn-cancel" onClick={cancelEdit}>Cancel</button>
                                   </div>
                                 </div>
                               )}
                             </div>
 
-                            <div className="ad-meta-cell">
-                              <div className="ad-last-updated">{fmtDate(row.last_updated)}</div>
-                              <div className={`ad-next-due ${dueBadgeClass(row.next_due)}`}>
+                            <div className="adm-meta-cell">
+                              <div className="adm-last-updated">{fmtDate(row.last_updated)}</div>
+                              <div className={`adm-next-due ${dueBadgeClass(row.next_due)}`}>
                                 {row.next_due ? dueBadgeText(row.next_due) : 'Stable'}
                               </div>
                             </div>
@@ -443,20 +443,20 @@ export default function AdminPage() {
 
                       {/* Pension total auto-calc */}
                       {section.id === 'pension' && (
-                        <div className="ad-config-row" style={{ background: 'rgba(201,168,76,0.03)' }}>
-                          <div className="ad-row-label">
+                        <div className="adm-config-row" style={{ background: 'rgba(201,168,76,0.03)' }}>
+                          <div className="adm-row-label">
                             <strong>Total maximum — Single</strong>
-                            <span className="ad-row-key">Auto-calculated from above three values</span>
+                            <span className="adm-row-key">Auto-calculated from above three values</span>
                           </div>
-                          <div className="ad-value-cell">
-                            <div className="ad-value-display" style={{ cursor: 'default', opacity: 0.7 }}>
+                          <div className="adm-value-cell">
+                            <div className="adm-value-display" style={{ cursor: 'default', opacity: 0.7 }}>
                               <span>${parseFloat(pensionTotal).toLocaleString('en-AU', { minimumFractionDigits: 2 })} /fn</span>
                               <span style={{ fontSize: 10, color: '#8a9bb0' }}>calculated</span>
                             </div>
                           </div>
-                          <div className="ad-meta-cell">
-                            <div className="ad-last-updated">—</div>
-                            <div className="ad-next-due ad-due-green">Auto</div>
+                          <div className="adm-meta-cell">
+                            <div className="adm-last-updated">—</div>
+                            <div className="adm-next-due adm-due-green">Auto</div>
                           </div>
                         </div>
                       )}
@@ -467,20 +467,20 @@ export default function AdminPage() {
             })}
 
             {/* Change log */}
-            <div className="ad-change-log" id="section-log">
-              <div className="ad-log-title">Recent changes</div>
+            <div className="adm-change-log" id="section-log">
+              <div className="adm-log-title">Recent changes</div>
               {log.length === 0 && (
                 <div style={{ color: '#8a9bb0', fontSize: 13, fontWeight: 300, padding: '12px 0' }}>
                   No changes this session. Changes you make above will appear here.
                 </div>
               )}
               {log.map(entry => (
-                <div key={entry.id} className="ad-log-entry">
-                  <div className="ad-log-dot" />
-                  <div className="ad-log-text">
+                <div key={entry.id} className="adm-log-entry">
+                  <div className="adm-log-dot" />
+                  <div className="adm-log-text">
                     <strong>{entry.label}</strong> updated to {entry.display}
                   </div>
-                  <div className="ad-log-time">{entry.dateStr}</div>
+                  <div className="adm-log-time">{entry.dateStr}</div>
                 </div>
               ))}
             </div>
@@ -489,7 +489,7 @@ export default function AdminPage() {
         </div>
 
         {/* Toast */}
-        <div className={`ad-toast${toastVisible ? ' visible' : ''}`}>
+        <div className={`adm-toast${toastVisible ? ' visible' : ''}`}>
           ✓ {toast}
         </div>
 
@@ -502,7 +502,7 @@ export default function AdminPage() {
 const styles = `
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-  .ad-root {
+  .adm-root {
     font-family: 'DM Sans', sans-serif;
     background: #0d1f35;
     color: #f5f0e8;
@@ -511,7 +511,7 @@ const styles = `
     position: relative;
   }
 
-  .ad-root::before {
+  .adm-root::before {
     content: '';
     position: fixed; inset: 0;
     background-image:
@@ -521,7 +521,7 @@ const styles = `
     pointer-events: none; z-index: 0;
   }
 
-  .ad-nav {
+  .adm-nav {
     display: flex; align-items: center; justify-content: space-between;
     padding: 16px 32px;
     border-bottom: 1px solid rgba(201,168,76,0.12);
@@ -530,15 +530,15 @@ const styles = `
     position: sticky; top: 0; z-index: 100;
   }
 
-  .ad-nav-left { display: flex; align-items: center; gap: 16px; }
-  .ad-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-  .ad-logo-text {
+  .adm-nav-left { display: flex; align-items: center; gap: 16px; }
+  .adm-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+  .adm-logo-text {
     font-family: 'Playfair Display', serif;
     font-size: 18px; font-weight: 600;
     color: #f5f0e8; letter-spacing: 0.04em;
   }
 
-  .ad-admin-badge {
+  .adm-admin-badge {
     background: rgba(201,168,76,0.12);
     border: 1px solid rgba(201,168,76,0.25);
     color: #c9a84c; font-size: 10px; letter-spacing: 0.12em;
@@ -546,14 +546,14 @@ const styles = `
     font-weight: 500;
   }
 
-  .ad-nav-right { display: flex; align-items: center; gap: 16px; font-size: 13px; color: #8a9bb0; }
-  .ad-nav-link { color: #8a9bb0; text-decoration: none; transition: color 0.2s; }
-  .ad-nav-link:hover { color: #f5f0e8; }
-  .ad-last-saved { font-size: 12px; color: rgba(138,155,176,0.6); }
+  .adm-nav-right { display: flex; align-items: center; gap: 16px; font-size: 13px; color: #8a9bb0; }
+  .adm-nav-link { color: #8a9bb0; text-decoration: none; transition: color 0.2s; }
+  .adm-nav-link:hover { color: #f5f0e8; }
+  .adm-last-saved { font-size: 12px; color: rgba(138,155,176,0.6); }
 
-  .ad-layout { display: flex; min-height: calc(100vh - 57px); position: relative; z-index: 1; }
+  .adm-layout { display: flex; min-height: calc(100vh - 57px); position: relative; z-index: 1; }
 
-  .ad-sidebar {
+  .adm-sidebar {
     width: 220px; flex-shrink: 0;
     border-right: 1px solid rgba(201,168,76,0.12);
     padding: 24px 0;
@@ -562,14 +562,14 @@ const styles = `
     overflow-y: auto;
   }
 
-  .ad-sidebar-label {
+  .adm-sidebar-label {
     font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
     color: #8a9bb0; font-weight: 500;
     padding: 0 20px; margin-bottom: 8px; margin-top: 20px;
   }
-  .ad-sidebar-label:first-child { margin-top: 0; }
+  .adm-sidebar-label:first-child { margin-top: 0; }
 
-  .ad-sidebar-item {
+  .adm-sidebar-item {
     display: flex; align-items: center; justify-content: space-between;
     padding: 9px 20px; cursor: pointer;
     font-size: 13px; color: #8a9bb0;
@@ -577,42 +577,42 @@ const styles = `
     width: 100%; text-align: left; font-family: 'DM Sans', sans-serif;
     border-left: 2px solid transparent;
   }
-  .ad-sidebar-item:hover { color: #f5f0e8; background: rgba(255,255,255,0.03); }
-  .ad-sidebar-item.active { color: #f5f0e8; background: rgba(201,168,76,0.07); border-left-color: #c9a84c; }
+  .adm-sidebar-item:hover { color: #f5f0e8; background: rgba(255,255,255,0.03); }
+  .adm-sidebar-item.active { color: #f5f0e8; background: rgba(201,168,76,0.07); border-left-color: #c9a84c; }
 
-  .ad-sidebar-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-  .ad-dot-green { background: #5b9e6e; }
-  .ad-dot-amber { background: #d4922a; }
-  .ad-dot-red   { background: #c0614a; }
+  .adm-sidebar-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .adm-dot-green { background: #5b9e6e; }
+  .adm-dot-amber { background: #d4922a; }
+  .adm-dot-red   { background: #c0614a; }
 
-  .ad-main { flex: 1; padding: 32px 36px; max-width: 820px; overflow-x: hidden; }
+  .adm-main { flex: 1; padding: 32px 36px; max-width: 820px; overflow-x: hidden; }
 
-  .ad-page-header { margin-bottom: 28px; }
-  .ad-page-eyebrow {
+  .adm-page-header { margin-bottom: 28px; }
+  .adm-page-eyebrow {
     font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
     color: #c9a84c; font-weight: 500; margin-bottom: 6px;
   }
-  .ad-page-title {
+  .adm-page-title {
     font-family: 'Playfair Display', serif;
     font-size: 26px; font-weight: 600; color: #f5f0e8;
     margin-bottom: 6px; line-height: 1.2;
   }
-  .ad-page-sub { font-size: 13px; color: #8a9bb0; font-weight: 300; line-height: 1.5; }
+  .adm-page-sub { font-size: 13px; color: #8a9bb0; font-weight: 300; line-height: 1.5; }
 
-  .ad-status-row { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
-  .ad-status-chip {
+  .adm-status-row { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+  .adm-status-chip {
     display: flex; align-items: center; gap: 7px;
     background: rgba(20,41,68,0.8);
     border: 1px solid rgba(201,168,76,0.12);
     border-radius: 4px; padding: 10px 14px; font-size: 12px;
   }
-  .ad-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .ad-chip-label { color: #8a9bb0; }
-  .ad-chip-val { color: #f5f0e8; font-weight: 500; margin-left: 2px; }
+  .adm-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .adm-chip-label { color: #8a9bb0; }
+  .adm-chip-val { color: #f5f0e8; font-weight: 500; margin-left: 2px; }
 
-  .ad-config-section { margin-bottom: 32px; }
+  .adm-config-section { margin-bottom: 32px; }
 
-  .ad-section-head {
+  .adm-section-head {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 18px;
     background: rgba(20,41,68,0.6);
@@ -621,9 +621,9 @@ const styles = `
     cursor: pointer; user-select: none;
   }
 
-  .ad-section-head-left { display: flex; align-items: center; gap: 10px; }
+  .adm-section-headm-left { display: flex; align-items: center; gap: 10px; }
 
-  .ad-section-icon {
+  .adm-section-icon {
     width: 30px; height: 30px;
     background: rgba(201,168,76,0.1);
     border: 1px solid rgba(201,168,76,0.2);
@@ -632,46 +632,46 @@ const styles = `
     font-size: 13px; flex-shrink: 0;
   }
 
-  .ad-section-title-text { font-weight: 500; color: #f5f0e8; font-size: 14px; }
-  .ad-section-sub-text { font-size: 11px; color: #8a9bb0; margin-top: 1px; }
-  .ad-section-head-right { display: flex; align-items: center; gap: 10px; }
+  .adm-section-title-text { font-weight: 500; color: #f5f0e8; font-size: 14px; }
+  .adm-section-sub-text { font-size: 11px; color: #8a9bb0; margin-top: 1px; }
+  .adm-section-headm-right { display: flex; align-items: center; gap: 10px; }
 
-  .ad-due-badge {
+  .adm-due-badge {
     font-size: 11px; padding: 3px 10px; border-radius: 20px;
     font-weight: 500; letter-spacing: 0.03em;
   }
-  .ad-due-green { background: rgba(91,158,110,0.1);  color: #7ec896; border: 1px solid rgba(91,158,110,0.25); }
-  .ad-due-amber { background: rgba(212,146,42,0.1);  color: #f0b860; border: 1px solid rgba(212,146,42,0.3); }
-  .ad-due-red   { background: rgba(192,97,74,0.1);   color: #e08878; border: 1px solid rgba(192,97,74,0.3); }
+  .adm-due-green { background: rgba(91,158,110,0.1);  color: #7ec896; border: 1px solid rgba(91,158,110,0.25); }
+  .adm-due-amber { background: rgba(212,146,42,0.1);  color: #f0b860; border: 1px solid rgba(212,146,42,0.3); }
+  .adm-due-red   { background: rgba(192,97,74,0.1);   color: #e08878; border: 1px solid rgba(192,97,74,0.3); }
 
-  .ad-chevron { color: #8a9bb0; font-size: 12px; transition: transform 0.2s; }
-  .ad-chevron.open { transform: rotate(180deg); }
+  .adm-chevron { color: #8a9bb0; font-size: 12px; transition: transform 0.2s; }
+  .adm-chevron.open { transform: rotate(180deg); }
 
-  .ad-config-table {
+  .adm-config-table {
     border: 1px solid rgba(201,168,76,0.12); border-top: none;
     border-radius: 0 0 6px 6px; overflow: hidden;
   }
 
-  .ad-table-header {
+  .adm-table-header {
     display: grid; grid-template-columns: 1fr 180px 130px;
     background: rgba(255,255,255,0.02);
     font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #8a9bb0;
   }
 
-  .ad-config-row {
+  .adm-config-row {
     display: grid; grid-template-columns: 1fr 180px 130px;
     border-bottom: 1px solid rgba(255,255,255,0.04);
     align-items: center;
   }
-  .ad-config-row:last-child { border-bottom: none; }
+  .adm-config-row:last-child { border-bottom: none; }
 
-  .ad-row-label { padding: 14px 18px; font-size: 13px; color: #8a9bb0; font-weight: 300; line-height: 1.4; }
-  .ad-row-label strong { color: #f5f0e8; font-weight: 500; display: block; margin-bottom: 2px; }
-  .ad-row-key { font-size: 11px; color: rgba(138,155,176,0.5); }
+  .adm-row-label { padding: 14px 18px; font-size: 13px; color: #8a9bb0; font-weight: 300; line-height: 1.4; }
+  .adm-row-label strong { color: #f5f0e8; font-weight: 500; display: block; margin-bottom: 2px; }
+  .adm-row-key { font-size: 11px; color: rgba(138,155,176,0.5); }
 
-  .ad-value-cell { padding: 10px 12px; }
+  .adm-value-cell { padding: 10px 12px; }
 
-  .ad-value-display {
+  .adm-value-display {
     font-family: 'DM Sans', sans-serif;
     font-size: 14px; font-weight: 500; color: #f5f0e8;
     background: rgba(13,31,53,0.6);
@@ -680,12 +680,12 @@ const styles = `
     cursor: pointer; transition: all 0.2s;
     display: flex; align-items: center; justify-content: space-between; gap: 8px;
   }
-  .ad-value-display:hover { border-color: rgba(201,168,76,0.4); background: rgba(13,31,53,0.9); }
+  .adm-value-display:hover { border-color: rgba(201,168,76,0.4); background: rgba(13,31,53,0.9); }
 
-  .ad-edit-icon { color: #8a9bb0; font-size: 11px; flex-shrink: 0; opacity: 0; transition: opacity 0.2s; }
-  .ad-value-display:hover .ad-edit-icon { opacity: 1; }
+  .adm-edit-icon { color: #8a9bb0; font-size: 11px; flex-shrink: 0; opacity: 0; transition: opacity 0.2s; }
+  .adm-value-display:hover .adm-edit-icon { opacity: 1; }
 
-  .ad-value-input {
+  .adm-value-input {
     font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
     color: #f5f0e8; background: #0d1f35;
     border: 1px solid #c9a84c; border-radius: 4px;
@@ -693,74 +693,74 @@ const styles = `
     box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
   }
 
-  .ad-value-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .adm-value-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 
-  .ad-btn-save {
+  .adm-btn-save {
     background: #c9a84c; border: none; color: #0d1f35;
     font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
     padding: 5px 12px; border-radius: 3px; cursor: pointer; transition: background 0.2s;
   }
-  .ad-btn-save:hover:not(:disabled) { background: #e8cc88; }
-  .ad-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  .adm-btn-save:hover:not(:disabled) { background: #e8cc88; }
+  .adm-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .ad-btn-cancel {
+  .adm-btn-cancel {
     background: transparent; border: 1px solid rgba(255,255,255,0.1);
     color: #8a9bb0; font-family: 'DM Sans', sans-serif;
     font-size: 12px; padding: 5px 10px; border-radius: 3px;
     cursor: pointer; transition: all 0.2s;
   }
-  .ad-btn-cancel:hover { color: #f5f0e8; }
+  .adm-btn-cancel:hover { color: #f5f0e8; }
 
-  .ad-meta-cell {
+  .adm-meta-cell {
     padding: 10px 14px; font-size: 11px; color: #8a9bb0;
     text-align: center; line-height: 1.5;
     border-left: 1px solid rgba(255,255,255,0.04);
   }
-  .ad-last-updated { margin-bottom: 3px; }
-  .ad-next-due { font-weight: 500; }
-  .ad-next-due.ad-due-amber { color: #f0b860; }
-  .ad-next-due.ad-due-green { color: #7ec896; }
-  .ad-next-due.ad-due-red   { color: #e08878; }
+  .adm-last-updated { margin-bottom: 3px; }
+  .adm-next-due { font-weight: 500; }
+  .adm-next-due.adm-due-amber { color: #f0b860; }
+  .adm-next-due.adm-due-green { color: #7ec896; }
+  .adm-next-due.adm-due-red   { color: #e08878; }
 
-  .ad-change-log { margin-top: 40px; padding-top: 28px; border-top: 1px solid rgba(201,168,76,0.12); }
+  .adm-change-log { margin-top: 40px; padding-top: 28px; border-top: 1px solid rgba(201,168,76,0.12); }
 
-  .ad-log-title {
+  .adm-log-title {
     font-family: 'Playfair Display', serif;
     font-size: 18px; font-weight: 600; color: #f5f0e8; margin-bottom: 20px;
   }
 
-  .ad-log-entry {
+  .adm-log-entry {
     display: flex; align-items: flex-start; gap: 12px;
     padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px;
   }
-  .ad-log-entry:last-child { border-bottom: none; }
+  .adm-log-entry:last-child { border-bottom: none; }
 
-  .ad-log-dot { width: 8px; height: 8px; border-radius: 50%; background: #c9a84c; flex-shrink: 0; margin-top: 4px; }
-  .ad-log-text { flex: 1; color: #8a9bb0; font-weight: 300; line-height: 1.5; }
-  .ad-log-text strong { color: #f5f0e8; font-weight: 500; }
-  .ad-log-time { font-size: 11px; color: #8a9bb0; white-space: nowrap; margin-top: 2px; }
+  .adm-log-dot { width: 8px; height: 8px; border-radius: 50%; background: #c9a84c; flex-shrink: 0; margin-top: 4px; }
+  .adm-log-text { flex: 1; color: #8a9bb0; font-weight: 300; line-height: 1.5; }
+  .adm-log-text strong { color: #f5f0e8; font-weight: 500; }
+  .adm-log-time { font-size: 11px; color: #8a9bb0; white-space: nowrap; margin-top: 2px; }
 
-  .ad-toast {
+  .adm-toast {
     position: fixed; bottom: 24px; right: 24px; z-index: 999;
     background: #142944; border: 1px solid rgba(91,158,110,0.4);
     color: #7ec896; font-size: 13px; padding: 10px 18px; border-radius: 4px;
     opacity: 0; transform: translateY(8px); transition: all 0.25s; pointer-events: none;
   }
-  .ad-toast.visible { opacity: 1; transform: translateY(0); }
+  .adm-toast.visible { opacity: 1; transform: translateY(0); }
 
-  .ad-spinner {
+  .adm-spinner {
     width: 36px; height: 36px;
     border: 2px solid rgba(201,168,76,0.2);
     border-top-color: #c9a84c;
     border-radius: 50%;
-    animation: ad-spin 0.7s linear infinite;
+    animation: adm-spin 0.7s linear infinite;
   }
-  @keyframes ad-spin { to { transform: rotate(360deg); } }
+  @keyframes adm-spin { to { transform: rotate(360deg); } }
 
   @media (max-width: 768px) {
-    .ad-sidebar { display: none; }
-    .ad-main { padding: 24px 16px; }
-    .ad-table-header, .ad-config-row { grid-template-columns: 1fr 140px; }
-    .ad-meta-cell { display: none; }
+    .adm-sidebar { display: none; }
+    .adm-main { padding: 24px 16px; }
+    .adm-table-header, .adm-config-row { grid-template-columns: 1fr 140px; }
+    .adm-meta-cell { display: none; }
   }
 `;
