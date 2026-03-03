@@ -760,7 +760,7 @@ export default function ForecastInputPage() {
                 <input
                   className="field-input"
                   type="text"
-                  placeholder="e.g. Margaret"
+                  placeholder="e.g. Karen"
                   value={form.name}
                   onChange={e => setField('name', e.target.value)}
                   autoFocus
