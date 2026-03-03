@@ -259,10 +259,8 @@ export default function AdminPage() {
   if (loading) {
     return (
       <>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
-          ${styles}
-        `}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" />
+<style>{styles}</style>
         <div style={{ minHeight: '100vh', background: '#0d1f35', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="ad-spinner" />
         </div>
@@ -273,10 +271,8 @@ export default function AdminPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
-        ${styles}
-      `}</style>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" />
+<style>{styles}</style>
 
       <div className="ad-root">
 
