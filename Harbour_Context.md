@@ -12,7 +12,7 @@ Harbour is a DIY retirement planning web application for Australians aged 25–7
 
 ---
 
-## The Person Building it
+## The Person Building It
 
 - **Name:** Shayne (monnas69 on GitHub)
 - **OS:** Windows
@@ -76,7 +76,7 @@ harbour/
 ├── app/
 │   ├── api/
 │   │   ├── forecast/
-│   │   │   └── route.js          ← POST endpoint, runs JS engine, saves to DB
+│   │   │   └── route.js          ← POST endpoint, runs JS engine, saves to DB if authenticated
 │   │   └── admin/
 │   │       └── config/
 │   │           └── route.js      ← POST endpoint, saves config to DB (service role)
@@ -87,13 +87,17 @@ harbour/
 │   │   └── page.js               ← Saved forecasts list, account details, sign out
 │   ├── forecast/
 │   │   ├── new/
-│   │   │   └── page.js           ← 6-step input form
+│   │   │   └── page.js           ← 6-step input form (public — no login required)
+│   │   ├── preview/
+│   │   │   └── page.js           ← Guest results page — reads from sessionStorage
 │   │   └── [id]/
-│   │       └── page.js           ← Results page with Monte Carlo chart
+│   │       └── page.js           ← Saved results page (authenticated users only)
 │   ├── admin/
 │   │   └── page.js               ← Admin config dashboard (protected by ADMIN_EMAIL)
 │   ├── privacy/
 │   │   └── page.js               ← Privacy Policy page
+│   ├── terms/
+│   │   └── page.js               ← Terms of Service page
 │   ├── layout.js                 ← Root layout — loads Playfair Display + DM Sans via Next.js fonts
 │   └── page.js                   ← Redirects to /harbour-landing.html
 ├── engine/
@@ -102,7 +106,7 @@ harbour/
 │   └── harbour-landing.html      ← Landing page (served as static file)
 ├── lib/
 │   └── supabase.js               ← Browser Supabase client (createClient)
-├── middleware.js                  ← Session management across all routes
+├── middleware.js                  ← Route protection — public: /forecast/new, /forecast/preview
 ├── .env.local                    ← Supabase URL + anon key + service role key + admin email
 └── [standard Next.js files]
 ```
@@ -130,7 +134,7 @@ NEXT_PUBLIC_ADMIN_EMAIL=...          ← Client-side admin check (same email)
 |---|---|---|
 | id | uuid | Primary key, auto-generated |
 | user_id | uuid | References auth.users, cascade delete |
-| name | text | e.g. "Margaret's forecast" |
+| name | text | e.g. "Karen's forecast" |
 | inputs | jsonb | All user inputs |
 | outputs | jsonb | Percentile bands from engine |
 | config_version | timestamptz | When forecast was generated |
@@ -208,7 +212,7 @@ inflation_rate                 2.5
 ### Inputs sent to JS engine (from `POST /api/forecast`):
 ```json
 {
-  "name": "Margaret",
+  "name": "Karen",
   "current_age": 58,
   "super_balance": 420000,
   "salary": 80000,
@@ -231,6 +235,37 @@ inflation_rate                 2.5
   "funds_last_p90": 90
 }
 ```
+
+---
+
+## Guest vs Authenticated Forecast Flow
+
+**Guest (not logged in):**
+1. Fills in `/forecast/new` — no login required
+2. Form posts to `/api/forecast` — engine runs, no DB save
+3. Results stored in `sessionStorage` as `harbour_preview`
+4. Redirected to `/forecast/preview` — full results with "Save your forecast" banner and CTA
+5. Sign up / sign in options throughout to convert to account
+
+**Authenticated:**
+1. Fills in `/forecast/new`
+2. Form posts to `/api/forecast` — engine runs, saved to DB
+3. Redirected to `/forecast/[id]` — full results page
+
+---
+
+## Route Protection (middleware.js)
+
+| Route | Access |
+|---|---|
+| `/forecast/new` | Public |
+| `/forecast/preview` | Public |
+| `/forecast/[id]` | Authenticated only |
+| `/dashboard` | Authenticated only |
+| `/admin` | Authenticated only (+ ADMIN_EMAIL check) |
+| `/auth/login` | Public |
+| `/privacy` | Public |
+| `/terms` | Public |
 
 ---
 
@@ -265,6 +300,7 @@ These are static HTML files created during the design phase. They live in the re
 | Admin page white screen with AdBlock | CSS classes renamed from `ad-` to `adm-` prefix |
 | Fonts blocked by ad blockers | Fonts loaded via Next.js font system in `app/layout.js` |
 | Stale chunk crash after deployment | Always open a fresh tab after deployment — never just refresh |
+| Forecast engine import path | Must be `../../../engine/forecast.js` — three levels up from `app/api/forecast/route.js` |
 
 ---
 
@@ -275,58 +311,43 @@ These are static HTML files created during the design phase. They live in the re
 - Next.js project created and deployed to Vercel
 - Supabase project created, database tables created, config seeded
 - Supabase Auth working (email + password sign up / sign in)
-- Forecast input form — 6-step (`app/forecast/new/page.js`)
+- Forecast input form — 6-step (`app/forecast/new/page.js`) — public, no login required
   - Name, age, super balance, optional salary with live SG callout
   - ASFA Comfortable/Modest presets, bidirectional annual ↔ fortnightly spend
   - Review & confirm step, posts to `/api/forecast`
 - JavaScript forecast engine (`engine/forecast.js`)
-  - Exact port of original Python engine
   - Seeded PRNG (mulberry32, seed 42) for reproducible results
   - Retirement phase volatility 9.6% (80% of accumulation)
   - Pension calculated at age-67 balance (not retirement balance)
   - `funds_last_p10/p50/p90` — age when money runs out per scenario
-- Forecast API route (`POST /api/forecast`) — authenticated, pulls config from DB, runs JS engine, saves result, returns `{ id, ...outputs }`
-- Forecast results page (`app/forecast/[id]/page.js`)
-  - Loads forecast from Supabase by ID
-  - 3 stat cards: super at retirement, Age Pension, funds last age
-  - Chart.js line chart: p10/p50/p90 bands + spending line + Age Pension vertical marker
-  - Plain English summary paragraph
-  - Disclaimer
+- Forecast API route (`POST /api/forecast`)
+  - Authenticated: saves to DB, returns `{ id, ...outputs }`
+  - Unauthenticated: runs engine, returns outputs only (no save)
+- Forecast results page (`app/forecast/[id]/page.js`) — authenticated users
+  - 3 stat cards, Chart.js Monte Carlo chart, plain English summary, disclaimer
+- Forecast preview page (`app/forecast/preview/page.js`) — guest users
+  - Reads from `sessionStorage`, full results display
+  - Save banner at top + CTA at bottom to create account
 - Dashboard (`app/dashboard/page.js`)
-  - Greeting (morning/afternoon/evening)
-  - Rate change notice (auto-shown when forecasts predate latest config update)
-  - Upgrade banner (Phase 3 placeholder)
-  - Forecast cards with real outputs (super/pension/funds-last), delete button
-  - Empty state
-  - Account details, plan info
-  - Working sign out
+  - Greeting, rate change notice, forecast cards, delete, sign out, account details
 - Admin config dashboard (`app/admin/page.js`)
-  - Protected by `ADMIN_EMAIL` env variable
-  - All 22 config keys grouped into 8 collapsible sections
-  - Inline click-to-edit with Save/Cancel, Enter/Escape keyboard support
-  - Due-date indicators (green/amber/red) per row and sidebar
-  - Pension total auto-calculated
-  - Session change log
-  - Toast notifications
-  - Saves via `POST /api/admin/config` using Supabase service role key
-- Landing page (`public/harbour-landing.html`)
-  - Hero with live Chart.js sparkline preview
-  - Trust strip, How it works, What you'll see, CTA
-  - Served at root URL `/`
+  - 22 config keys, inline editing, due-date indicators, session change log
+- Landing page (`public/harbour-landing.html`) — live at `/`
 - Login page — full Harbour design (navy/gold/cream)
 - Privacy Policy (`app/privacy/page.js`) — live at `/privacy`
   - Australian Privacy Act compliant, 13 sections
   - Linked from landing page footer and login page
+- Terms of Service (`app/terms/page.js`) — live at `/terms`
+  - 12 sections, Australian law, general information framing
+  - Linked from landing page footer and login page
+- `middleware.js` — route protection
+- Forecast figures verified correct against manual Centrelink calculations ✅
 - `app/layout.js` — Playfair Display + DM Sans loaded via Next.js font system
-- Vercel deployment live and working end to end
 
 ### → Next up (before launch)
-- Terms of Service page
 - Password reset flow (Resend email not yet wired)
 - Email confirmation — currently OFF in Supabase Auth, turn ON before launch
 - Domain registration — harbour.com.au (check VentraIP)
-- Verify forecast figures are correct against manual calculations
-- Performance — forecast takes ~7 seconds (Vercel cold start + 1,000 simulations)
 
 ### Phase 3 (post-launch)
 - Stripe integration + paid tier
@@ -362,7 +383,7 @@ These are static HTML files created during the design phase. They live in the re
 ## Compliance Notes
 
 - Privacy Policy ✅ live at `/privacy` — covers Australian Privacy Act 1988
-- Terms of Service — required before launch, not yet built
+- Terms of Service ✅ live at `/terms` — general information framing, limitation of liability
 - ABN required before charging users (Phase 3)
 - AFSL — current general information framing does not require a licence. Confirm with lawyer before scaling.
 - Email: `privacy@harbour.com.au` referenced in Privacy Policy — set up before launch
