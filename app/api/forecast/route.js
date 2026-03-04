@@ -2,11 +2,9 @@
 // POST endpoint — runs JS forecast engine.
 // Authenticated: saves to Supabase and returns { id, ...outputs }
 // Unauthenticated: runs engine and returns outputs only (no save, no id)
-
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { runForecast } from '../../../engine/forecast.js';
-
 export async function POST(request) {
   // ── Parse request body
   let body;
@@ -15,13 +13,10 @@ export async function POST(request) {
   } catch {
     return Response.json({ error: 'Invalid request body' }, { status: 400 });
   }
-
   const { name, current_age, super_balance, salary, annual_spending, retirement_age } = body;
-
   if (!name || !current_age || super_balance == null || !annual_spending || !retirement_age) {
     return Response.json({ error: 'Missing required fields' }, { status: 400 });
   }
-
   // ── Check for session (optional — unauthenticated users can still run forecasts)
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -33,23 +28,18 @@ export async function POST(request) {
       },
     }
   );
-
   const { data: { user } } = await supabase.auth.getUser();
-
   // ── Pull config from Supabase (public readable — no auth required)
   const { data: configRows, error: configError } = await supabase
     .from('config')
     .select('key, value');
-
   if (configError || !configRows?.length) {
     return Response.json({ error: 'Failed to load config' }, { status: 500 });
   }
-
   const config = {};
   for (const row of configRows) {
     config[row.key] = Number(row.value);
   }
-
   // ── Run the forecast engine
   let outputs;
   try {
@@ -67,9 +57,26 @@ export async function POST(request) {
     console.error('Forecast engine error:', err);
     return Response.json({ error: 'Forecast calculation failed' }, { status: 500 });
   }
-
   // ── If user is authenticated, save to Supabase and return the forecast id
   if (user) {
+    // Check forecast limit (free tier = 3 max)
+    const { count, error: countError } = await supabase
+      .from('forecasts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    if (countError) {
+      console.error('Forecast count error:', countError);
+      return Response.json({ error: 'Failed to check forecast limit' }, { status: 500 });
+    }
+
+    if (count >= 3) {
+      return Response.json(
+        { error: 'FORECAST_LIMIT_REACHED', message: 'Free accounts are limited to 3 saved forecasts. Delete an existing forecast to save a new one.' },
+        { status: 403 }
+      );
+    }
+
     const { data: saved, error: saveError } = await supabase
       .from('forecasts')
       .insert({
@@ -87,15 +94,12 @@ export async function POST(request) {
       })
       .select('id')
       .single();
-
     if (saveError || !saved) {
       console.error('Supabase save error:', saveError);
       return Response.json({ error: 'Failed to save forecast' }, { status: 500 });
     }
-
     return Response.json({ id: saved.id, ...outputs });
   }
-
   // ── Unauthenticated — return outputs only (no id, no save)
   return Response.json(outputs);
 }
