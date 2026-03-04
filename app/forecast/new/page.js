@@ -213,6 +213,9 @@ export default function ForecastInputPage() {
 
       if (!res.ok) {
         const data = await res.json();
+        if (data.error === 'FORECAST_LIMIT_REACHED') {
+          throw new Error('You\'ve reached the 3 forecast limit. Go to your dashboard and delete a forecast to save a new one.');
+        }
         throw new Error(data.error || 'Forecast failed. Please try again.');
       }
 
