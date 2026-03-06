@@ -128,7 +128,7 @@ export default function PrivacyPage() {
 
           <div className="pp-section">
             <h2>1. Who we are</h2>
-            <p>Harbour Pty Ltd (ABN XX XXX XXX XXX), an Australian company with registered office at [Address, Perth, WA]. References to "Harbour", "we", "us", or "our" refer to this operator.</p>
+            <p>Harbourapp.com.au. References to "Harbour", "we", "us", or "our" refer to this operator.</p>
             <p>Harbour provides general information only and is not a licensed financial services provider (AFSL).</p>
             <p>Contact for privacy matters:</p>
             <div className="pp-contact-box">

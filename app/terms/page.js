@@ -139,7 +139,7 @@ export default function TermsPage() {
             <h2>1. About Harbour</h2>
             <p>Harbour is an Australian web application providing retirement forecasting tools. By accessing or using Harbour, you agree to these Terms. If you do not agree, do not use the service.</p>
             <div className="pp-contact-box">
-              <strong>Operator:</strong> Harbour Pty Ltd (ABN XX XXX XXX XXX), Perth, WA
+              <strong>Operator:</strong> Harbour.app.com.au , Bunbury, WA
             </div>
           </div>
 
