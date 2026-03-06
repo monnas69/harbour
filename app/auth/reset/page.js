@@ -17,22 +17,13 @@ export default function ResetPasswordPage() {
   // clicks the reset link — we need to wait for the auth state to
   // update before allowing the form to submit.
   useEffect(() => {
-  const code = new URLSearchParams(window.location.search).get('code')
-  if (code) {
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) {
-        setError('This reset link is invalid or has expired. Please request a new one.')
-      } else {
-        setReady(true)
-      }
-    })
-  } else {
-    // Fallback for older token-based links
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true)
-    })
-    return () => subscription.unsubscribe()
-  }
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) {
+      setReady(true)
+    } else {
+      setError('This reset link is invalid or has expired. Please request a new one.')
+    }
+  })
 }, [])
 
   async function handleSubmit(e) {
