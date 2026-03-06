@@ -3,28 +3,43 @@ import { useState } from 'react'
 import { createClient } from '../../../lib/supabase'
 import { useRouter } from 'next/navigation'
 
+// view: 'signin' | 'signup' | 'forgot' | 'forgot-sent'
 export default function LoginPage() {
+  const [view, setView]         = useState('signin')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
   const [error, setError]       = useState(null)
   const [loading, setLoading]   = useState(false)
   const router   = useRouter()
   const supabase = createClient()
+
+  const reset = (nextView) => {
+    setError(null)
+    setView(nextView)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    if (isSignUp) {
+    if (view === 'signup') {
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
       router.push('/dashboard')
-    } else {
+
+    } else if (view === 'signin') {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
       router.push('/dashboard')
+
+    } else if (view === 'forgot') {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://harbourapp.com.au/auth/reset',
+      })
+      if (error) { setError(error.message); setLoading(false); return }
+      setView('forgot-sent')
+      setLoading(false)
     }
   }
 
@@ -165,6 +180,28 @@ export default function LoginPage() {
           margin-bottom: 20px;
         }
 
+        .login-field-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .login-forgot-link {
+          font-size: 12px;
+          color: #8a9bb0;
+          background: none;
+          border: none;
+          font-family: 'DM Sans', sans-serif;
+          cursor: pointer;
+          padding: 0;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          transition: color 0.2s;
+        }
+
+        .login-forgot-link:hover { color: #c9a84c; }
+
         .login-error {
           background: rgba(192,97,74,0.1);
           border: 1px solid rgba(192,97,74,0.3);
@@ -174,6 +211,17 @@ export default function LoginPage() {
           padding: 10px 14px;
           margin-bottom: 20px;
           line-height: 1.5;
+        }
+
+        .login-success {
+          background: rgba(76,168,100,0.1);
+          border: 1px solid rgba(76,168,100,0.3);
+          border-radius: 4px;
+          color: #7ecf94;
+          font-size: 14px;
+          padding: 16px 18px;
+          margin-bottom: 20px;
+          line-height: 1.6;
         }
 
         .login-btn {
@@ -228,9 +276,7 @@ export default function LoginPage() {
           text-underline-offset: 2px;
         }
 
-        .login-toggle-link:hover {
-          color: #e8cc88;
-        }
+        .login-toggle-link:hover { color: #e8cc88; }
 
         .login-disclaimer {
           margin-top: 32px;
@@ -242,7 +288,6 @@ export default function LoginPage() {
       `}</style>
 
       <div className="login-body">
-        {/* Nav */}
         <nav className="login-nav">
           <a href="/" className="login-logo">
             <svg viewBox="0 0 36 36" fill="none" width="28" height="28">
@@ -255,74 +300,89 @@ export default function LoginPage() {
           </a>
         </nav>
 
-        {/* Main */}
         <main className="login-main">
           <div className="login-card">
-            <h1 className="login-heading">
-              {isSignUp ? 'Create your account' : 'Welcome back'}
-            </h1>
-            <p className="login-subheading">
-              {isSignUp
-                ? 'Free to use · Your forecasts are saved to your account'
-                : 'Sign in to view your saved forecasts'}
-            </p>
 
-            <form onSubmit={handleSubmit}>
-              <div className="login-field">
-                <label className="login-label">Email address</label>
-                <input
-                  className="login-input"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
+            {/* ── Sign in ── */}
+            {view === 'signin' && (
+              <>
+                <h1 className="login-heading">Welcome back</h1>
+                <p className="login-subheading">Sign in to view your saved forecasts</p>
+                <form onSubmit={handleSubmit}>
+                  <div className="login-field">
+                    <label className="login-label">Email address</label>
+                    <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+                  </div>
+                  <div className="login-field">
+                    <div className="login-field-row">
+                      <label className="login-label" style={{marginBottom:0}}>Password</label>
+                      <button type="button" className="login-forgot-link" onClick={() => reset('forgot')}>Forgot password?</button>
+                    </div>
+                    <input className="login-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
+                  </div>
+                  {error && <div className="login-error">{error}</div>}
+                  <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+                </form>
+                <hr className="login-divider" />
+                <p className="login-toggle">New to Harbour? <button className="login-toggle-link" onClick={() => reset('signup')}>Create free account</button></p>
+              </>
+            )}
 
-              <div className="login-field">
-                <label className="login-label">Password</label>
-                <input
-                  className="login-input"
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
+            {/* ── Sign up ── */}
+            {view === 'signup' && (
+              <>
+                <h1 className="login-heading">Create your account</h1>
+                <p className="login-subheading">Free to use · Your forecasts are saved to your account</p>
+                <form onSubmit={handleSubmit}>
+                  <div className="login-field">
+                    <label className="login-label">Email address</label>
+                    <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+                  </div>
+                  <div className="login-field">
+                    <label className="login-label">Password</label>
+                    <input className="login-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" required />
+                  </div>
+                  {error && <div className="login-error">{error}</div>}
+                  <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Creating account…' : 'Create account'}</button>
+                </form>
+                <hr className="login-divider" />
+                <p className="login-toggle">Already have an account? <button className="login-toggle-link" onClick={() => reset('signin')}>Sign in</button></p>
+                <p className="login-disclaimer">By creating an account you agree to our <a href="/privacy" style={{color:'#c9a84c'}}>Privacy Policy</a> and <a href="/terms" style={{color:'#c9a84c'}}>Terms of Service</a>.</p>
+              </>
+            )}
 
-              {error && (
-                <div className="login-error">{error}</div>
-              )}
+            {/* ── Forgot password ── */}
+            {view === 'forgot' && (
+              <>
+                <h1 className="login-heading">Reset your password</h1>
+                <p className="login-subheading">Enter your email and we'll send you a reset link</p>
+                <form onSubmit={handleSubmit}>
+                  <div className="login-field">
+                    <label className="login-label">Email address</label>
+                    <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+                  </div>
+                  {error && <div className="login-error">{error}</div>}
+                  <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Sending…' : 'Send reset link'}</button>
+                </form>
+                <hr className="login-divider" />
+                <p className="login-toggle"><button className="login-toggle-link" onClick={() => reset('signin')}>← Back to sign in</button></p>
+              </>
+            )}
 
-              <button className="login-btn" type="submit" disabled={loading}>
-                {loading
-                  ? 'Please wait…'
-                  : isSignUp
-                  ? 'Create account'
-                  : 'Sign in'}
-              </button>
-            </form>
+            {/* ── Forgot password sent ── */}
+            {view === 'forgot-sent' && (
+              <>
+                <h1 className="login-heading">Check your email</h1>
+                <p className="login-subheading">A reset link is on its way</p>
+                <div className="login-success">
+                  We've sent a password reset link to <strong>{email}</strong>. Click the link in the email to set a new password.<br /><br />
+                  If you don't see it, check your spam folder.
+                </div>
+                <hr className="login-divider" />
+                <p className="login-toggle"><button className="login-toggle-link" onClick={() => reset('signin')}>← Back to sign in</button></p>
+              </>
+            )}
 
-            <hr className="login-divider" />
-
-            <p className="login-toggle">
-              {isSignUp ? 'Already have an account? ' : 'New to Harbour? '}
-              <button
-                className="login-toggle-link"
-                onClick={() => { setIsSignUp(!isSignUp); setError(null) }}
-              >
-                {isSignUp ? 'Sign in' : 'Create free account'}
-              </button>
-            </p>
-
-            <p className="login-disclaimer">
-              By creating an account you agree to our{' '}
-<a href="/privacy" style={{color:'#c9a84c'}}>Privacy Policy</a>
-{' '}and{' '}
-<a href="/terms" style={{color:'#c9a84c'}}>Terms of Service</a>.
-            </p>
           </div>
         </main>
       </div>
