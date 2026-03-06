@@ -35,7 +35,7 @@ export default function LoginPage() {
 
     } else if (view === 'forgot') {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://www.harbourapp.com.au/auth/reset',
+        redirectTo: 'https://www.harbourapp.com.au/auth/callback?next=/auth/reset',
       })
       if (error) { setError(error.message); setLoading(false); return }
       setView('forgot-sent')
