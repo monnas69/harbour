@@ -26,7 +26,8 @@ export default function LoginPage() {
     if (view === 'signup') {
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
-      router.push('/dashboard')
+      setView('signup-confirm')
+      setLoading(false)
 
     } else if (view === 'signin') {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -348,6 +349,20 @@ export default function LoginPage() {
                 <hr className="login-divider" />
                 <p className="login-toggle">Already have an account? <button className="login-toggle-link" onClick={() => reset('signin')}>Sign in</button></p>
                 <p className="login-disclaimer">By creating an account you agree to our <a href="/privacy" style={{color:'#c9a84c'}}>Privacy Policy</a> and <a href="/terms" style={{color:'#c9a84c'}}>Terms of Service</a>.</p>
+              </>
+            )}
+
+            {/* ── Sign up confirmation ── */}
+            {view === 'signup-confirm' && (
+              <>
+                <h1 className="login-heading">Check your email</h1>
+                <p className="login-subheading">One more step to activate your account</p>
+                <div className="login-success">
+                  We've sent a confirmation link to <strong>{email}</strong>. Click the link in the email to activate your account.<br /><br />
+                  If you don't see it, check your spam folder.
+                </div>
+                <hr className="login-divider" />
+                <p className="login-toggle"><button className="login-toggle-link" onClick={() => reset('signin')}>← Back to sign in</button></p>
               </>
             )}
 
