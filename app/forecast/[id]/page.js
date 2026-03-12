@@ -300,7 +300,7 @@ export default function ForecastResultPage() {
   const inputs  = forecast.inputs;
   const outputs = forecast.outputs;
 
-  const name            = inputs.name || 'Your';
+  const name            = inputs.name?.trim() || '';
   const currentAge      = inputs.current_age;
   const superBalance    = inputs.super_balance;
   const retirementAge   = inputs.retirement_age;
@@ -342,7 +342,7 @@ export default function ForecastResultPage() {
           </a>
           <div className="hf-nav-right">
             <span className="hf-nav-user">
-              Viewing <span>{name}'s forecast</span>
+              {name ? <>Viewing <span>{name}'s forecast</span></> : <>Viewing <span>your forecast</span></>}
             </span>
             <button className="hf-btn-outline" onClick={() => router.push('/forecast/new')}>
               ✎ New forecast
@@ -360,7 +360,7 @@ export default function ForecastResultPage() {
           <div className="hf-header">
             <div>
               <h1 className="hf-title">
-                {name}'s <em>Retirement Forecast</em>
+                {name ? `${name}'s` : 'Your'} <em>Retirement Forecast</em>
               </h1>
               <div className="hf-meta">
                 Age <span>{currentAge}</span> · Super balance <span>{fmtFull(superBalance)}</span> · Target retirement age <span>{retirementAge}</span> · Generated <span>{createdAt}</span>
@@ -387,12 +387,15 @@ export default function ForecastResultPage() {
             <div className="hf-stat-card hf-stat-green">
               <div className="hf-stat-label">Age Pension entitlement</div>
               <div className="hf-stat-value green">
-                {pensionAnnual ? fmtFull(Math.round(pensionAnnual / 100) * 100) : '—'}
+                {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : pensionAnnual === 0 ? 'Not eligible' : '—'}
               </div>
               <div className="hf-stat-sub">
-                Estimated per year from age 67<br />
-                {pensionFortnightly ? `(${fmtFull(pensionFortnightly)} per fortnight) ` : ''}
-                based on assets &amp; income tests
+                {pensionAnnual > 0
+                  ? <>Estimated per year from age 67<br />{`${fmtFull(pensionFortnightly)} per fortnight — based on assets & income tests`}</>
+                  : pensionAnnual === 0
+                  ? <>Not eligible from age 67<br />Projected balance exceeds the assets or income test threshold</>
+                  : <>Estimated per year from age 67<br />based on assets &amp; income tests</>
+                }
               </div>
             </div>
 

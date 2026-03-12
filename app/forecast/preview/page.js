@@ -168,7 +168,7 @@ export default function ForecastPreviewPage() {
   }
 
   const { inputs, outputs } = data;
-  const name           = inputs.name || 'Your';
+  const name           = inputs.name?.trim() || '';
   const currentAge     = inputs.current_age;
   const superBalance   = inputs.super_balance;
   const retirementAge  = inputs.retirement_age;
@@ -228,7 +228,7 @@ export default function ForecastPreviewPage() {
           {/* Header */}
           <div className="hf-header">
             <div>
-              <h1 className="hf-title">{name}'s <em>Retirement Forecast</em></h1>
+              <h1 className="hf-title">{name ? `${name}'s` : 'Your'} <em>Retirement Forecast</em></h1>
               <div className="hf-meta">
                 Age <span>{currentAge}</span> · Super balance <span>{fmtFull(superBalance)}</span> · Target retirement age <span>{retirementAge}</span>
               </div>
@@ -243,11 +243,15 @@ export default function ForecastPreviewPage() {
               <div className="hf-stat-value gold">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
               <div className="hf-stat-sub">Median estimate at age {retirementAge}<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
             </div>
-            <div className="hf-stat-card hf-stat-green">
-              <div className="hf-stat-label">Age Pension entitlement</div>
-              <div className="hf-stat-value green">{pensionAnnual ? fmtFull(Math.round(pensionAnnual / 100) * 100) : '—'}</div>
-              <div className="hf-stat-sub">Estimated per year from age 67<br />{pensionFortnightly ? `(${fmtFull(pensionFortnightly)} per fortnight) ` : ''}based on assets &amp; income tests</div>
-            </div>
+            <div className="hf-stat-value green">
+                {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible'}
+              </div>
+              <div className="hf-stat-sub">
+                {pensionAnnual > 0
+                  ? <>{fmtFull(pensionFortnightly)} per fortnight from age 67<br />based on assets &amp; income tests</>
+                  : <>Not entitled from age 67<br />Projected balance exceeds assets or income test threshold</>
+                }
+              </div>
             <div className="hf-stat-card hf-stat-blue">
               <div className="hf-stat-label">Funds projected to last until</div>
               <div className="hf-stat-value blue">{fmtAge(fundsLastP50)}</div>
