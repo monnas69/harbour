@@ -14,9 +14,8 @@ function mulberry32(seed) {
 }
 
 // Box-Muller transform: two uniform randoms → one standard normal
-// Returns a normal(mean, std) sample
 function randomNormal(rand, mean, std) {
-  const u1 = Math.max(1e-10, rand()); // guard against log(0)
+  const u1 = Math.max(1e-10, rand());
   const u2 = rand();
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   return mean + z * std;
@@ -33,7 +32,6 @@ function percentile(arr, p) {
 }
 
 // ── Centrelink Age Pension calculation
-// Returns fortnightly pension amount for a given balance
 function calculatePension(
   bal,
   pensionMax,
@@ -48,17 +46,16 @@ function calculatePension(
   if (bal >= assetsUpper) return 0;
   const fnPerYear = 26;
 
-  // Assets test: reduce by $taper per fortnight per $1,000 over lower threshold
+  // Assets test
   const assetsReduction = Math.max(0, Math.floor((bal - assetsLower) / 1000)) * taper;
   const pensionAssets = Math.max(0, pensionMax - assetsReduction);
 
-  // Income test: deem assets at lower/upper rates, reduce pension by 50c per $1 over free area
+  // Income test
   let deemedAnnual;
   if (bal <= deemingThr) {
     deemedAnnual = bal * deemingLow;
   } else {
-    deemedAnnual =
-      deemingThr * deemingLow + (bal - deemingThr) * deemingHigh;
+    deemedAnnual = deemingThr * deemingLow + (bal - deemingThr) * deemingHigh;
   }
   const deemedFn = deemedAnnual / fnPerYear;
   const incomeReduction = Math.max(0, (deemedFn - incomeFree) * 0.5);
@@ -69,15 +66,16 @@ function calculatePension(
 }
 
 // ── Main forecast function
-// inputs and config mirror the Python engine's expected shapes exactly
 function runForecast(inputs, config) {
   // ── Inputs
-  const age       = inputs.current_age;
-  const superBal  = inputs.super_balance;
-  const salary    = inputs.salary || 0;
-  const spending  = inputs.annual_spending;
-  const retireAge = inputs.retirement_age;
-  const runs      = 1000;
+  const age            = inputs.current_age;
+  const superBal       = inputs.super_balance;
+  const salary         = inputs.salary || 0;
+  const salarySacrifice = inputs.salary_sacrifice || 0;  // annual, pre-tax
+  const ncc            = inputs.ncc || 0;                // annual, after-tax
+  const spending       = inputs.annual_spending;
+  const retireAge      = inputs.retirement_age;
+  const runs           = 1000;
 
   // ── Config
   const retAcc     = config.return_accumulation / 100;
@@ -104,14 +102,26 @@ function runForecast(inputs, config) {
   const retYears   = Math.max(longevity - retireAge, 1);
   const totalYears = accYears + retYears;
 
-  const fnPerYear     = 26;
-  const sgFortnightly = (salary * sgRate) / fnPerYear;
+  const fnPerYear = 26;
+
+  // ── Concessional contributions (SG + salary sacrifice), taxed at 15% on entry
+  // The 0.85 multiplier reflects the 15% contributions tax applied to all
+  // concessional (pre-tax) money entering the fund.
+  const sgFortnightly          = (salary * sgRate) / fnPerYear;
+  const salarySacrificeFortnightly = salarySacrifice / fnPerYear;
+  const concFortnightlyAfterTax =
+    (sgFortnightly + salarySacrificeFortnightly) * 0.85;
+
+  // ── Non-concessional contributions (after-tax) — no tax on entry
+  const nccFortnightly = ncc / fnPerYear;
+
+  // Total fortnightly contribution into super
+  const totalContribFortnightly = concFortnightlyAfterTax + nccFortnightly;
 
   // ── Seeded PRNG — seed 42 for reproducible results
   const rand = mulberry32(42);
 
-  // Pre-generate all return arrays (accumulation then retirement, run by run)
-  // Mirrors numpy's generation order: acc_returns first, then ret_returns
+  // Pre-generate all return arrays
   const accReturns = [];
   for (let i = 0; i < runs; i++) {
     const row = [];
@@ -125,15 +135,12 @@ function runForecast(inputs, config) {
   for (let i = 0; i < runs; i++) {
     const row = [];
     for (let y = 0; y < retYears; y++) {
-      // Retirement volatility = 80% of accumulation volatility (per MVP Rules v1.1)
       row.push(randomNormal(rand, retRet, volatility * 0.8));
     }
     retReturns.push(row);
   }
 
   // ── Monte Carlo simulation
-  // allBalances[year] = array of balances across all runs at that year
-  // (transposed vs Python for efficient per-year percentile calculation)
   const allBalances = Array.from({ length: totalYears }, () =>
     new Array(runs).fill(0)
   );
@@ -142,14 +149,15 @@ function runForecast(inputs, config) {
   for (let i = 0; i < runs; i++) {
     let bal = superBal;
 
-    // Accumulation phase: compound growth net of 15% tax + SG contributions
+    // Accumulation phase
     for (let y = 0; y < accYears; y++) {
       const r = accReturns[i][y];
-      bal = bal + bal * r * 0.85 + sgFortnightly * fnPerYear;
+      // Investment earnings taxed at 15%; contributions already taxed on entry above
+      bal = bal + bal * r * 0.85 + totalContribFortnightly * fnPerYear;
       allBalances[y][i] = bal;
     }
 
-    // Retirement phase: drawdown, pension from age 67, inflation-adjusted spending
+    // Retirement phase
     let fundsLast = longevity;
     for (let y = 0; y < retYears; y++) {
       const currentAgeYr = retireAge + y;
@@ -158,15 +166,8 @@ function runForecast(inputs, config) {
       let pensionFn = 0;
       if (currentAgeYr >= pensionAge) {
         pensionFn = calculatePension(
-          bal,
-          pensionMax,
-          assetsLower,
-          assetsUpper,
-          taper,
-          incomeFree,
-          deemingLow,
-          deemingThr,
-          deemingHigh
+          bal, pensionMax, assetsLower, assetsUpper, taper,
+          incomeFree, deemingLow, deemingThr, deemingHigh
         );
       }
 
@@ -177,7 +178,6 @@ function runForecast(inputs, config) {
 
       allBalances[accYears + y][i] = bal;
 
-      // Record the age when this run hits $0
       if (bal === 0 && fundsLast === longevity) {
         fundsLast = currentAgeYr;
       }
@@ -187,7 +187,6 @@ function runForecast(inputs, config) {
   }
 
   // ── Percentile bands
-  // Prepend starting balance so ages and curves align (current age → age 90)
   const agesList = Array.from(
     { length: longevity - age + 1 },
     (_, i) => age + i
@@ -203,12 +202,9 @@ function runForecast(inputs, config) {
     p90Curve.push(Math.round(Math.max(0, percentile(allBalances[y], 90))));
   }
 
-  // Retirement balance = median curve at the retirement year index
   const retirementBalanceMedian =
     accYears < p50Curve.length ? p50Curve[accYears] : Math.round(superBal);
 
-  // Pension calculated at median age-67 balance (not retirement balance)
-  // This gives a more realistic entitlement estimate per MVP Rules
   const pensionAge67Idx = pensionAge - age;
   const balAt67 =
     pensionAge67Idx > 0 && pensionAge67Idx < p50Curve.length
@@ -216,19 +212,11 @@ function runForecast(inputs, config) {
       : retirementBalanceMedian;
 
   const pensionFnMedian = calculatePension(
-    balAt67,
-    pensionMax,
-    assetsLower,
-    assetsUpper,
-    taper,
-    incomeFree,
-    deemingLow,
-    deemingThr,
-    deemingHigh
+    balAt67, pensionMax, assetsLower, assetsUpper, taper,
+    incomeFree, deemingLow, deemingThr, deemingHigh
   );
   const pensionAnnualMedian = Math.round(pensionFnMedian * fnPerYear);
 
-  // Funds last percentiles
   const fundsLastP10 = Math.round(percentile(fundsLastAges, 10));
   const fundsLastP50 = Math.round(percentile(fundsLastAges, 50));
   const fundsLastP90 = Math.round(percentile(fundsLastAges, 90));
@@ -246,4 +234,4 @@ function runForecast(inputs, config) {
   };
 }
 
-export { runForecast };
+module.exports = { runForecast };

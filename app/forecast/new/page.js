@@ -8,6 +8,10 @@ import { createClient } from '@/lib/supabase';
 const ASFA_COMFORTABLE = 51000;
 const ASFA_MODEST = 36000;
 
+// ─── Contribution caps (current year — update 1 July each year) ──────────────
+const CONCESSIONAL_CAP = 30000;
+const NCC_CAP = 120000;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatCurrency = (val) => {
   if (!val && val !== 0) return '';
@@ -56,6 +60,10 @@ export default function ForecastInputPage() {
     superBalanceDisplay: '',
     salary: '',
     salaryDisplay: '',
+    salarySacrifice: '',
+    salarySacrificeDisplay: '',
+    ncc: '',
+    nccDisplay: '',
     retirementAge: '',
     spendingAnnual: '',
     spendingFortnightly: '',
@@ -141,6 +149,30 @@ export default function ForecastInputPage() {
     }
   };
 
+  const handleSalarySacrifice = (raw) => {
+    const num = parseCurrency(raw);
+    setForm(f => ({ ...f, salarySacrificeDisplay: raw, salarySacrifice: num === '' ? '' : num }));
+    setError('');
+  };
+
+  const handleSalarySacrificeBlur = () => {
+    if (form.salarySacrifice !== '') {
+      setForm(f => ({ ...f, salarySacrificeDisplay: formatCurrency(f.salarySacrifice) }));
+    }
+  };
+
+  const handleNcc = (raw) => {
+    const num = parseCurrency(raw);
+    setForm(f => ({ ...f, nccDisplay: raw, ncc: num === '' ? '' : num }));
+    setError('');
+  };
+
+  const handleNccBlur = () => {
+    if (form.ncc !== '') {
+      setForm(f => ({ ...f, nccDisplay: formatCurrency(f.ncc) }));
+    }
+  };
+
   const handleSpendingAnnual = (raw) => {
     const num = parseCurrency(raw);
     const fn = num !== '' ? annualToFortnightly(num) : '';
@@ -197,12 +229,14 @@ export default function ForecastInputPage() {
     setError('');
     try {
       const payload = {
-        name: form.name.trim(),
-        current_age: parseInt(form.currentAge),
-        super_balance: parseFloat(form.superBalance),
-        retirement_age: parseInt(form.retirementAge),
-        annual_spending: parseFloat(form.spendingAnnual),
-        salary: form.salary ? parseFloat(form.salary) : null,
+        name:             form.name.trim(),
+        current_age:      parseInt(form.currentAge),
+        super_balance:    parseFloat(form.superBalance),
+        retirement_age:   parseInt(form.retirementAge),
+        annual_spending:  parseFloat(form.spendingAnnual),
+        salary:           form.salary ? parseFloat(form.salary) : 0,
+        salary_sacrifice: form.salarySacrifice ? parseFloat(form.salarySacrifice) : 0,
+        ncc:              form.ncc ? parseFloat(form.ncc) : 0,
       };
 
       const res = await fetch('/api/forecast', {
@@ -221,13 +255,11 @@ export default function ForecastInputPage() {
 
       const data = await res.json();
 
-      // If forecast was saved (authenticated user) redirect to saved result
       if (data.id) {
         router.push(`/forecast/${data.id}`);
         return;
       }
 
-      // Guest user — store results in sessionStorage and show preview
       sessionStorage.setItem('harbour_preview', JSON.stringify({
         inputs: payload,
         outputs: data,
@@ -245,6 +277,13 @@ export default function ForecastInputPage() {
   const yearsToRetirement = form.currentAge && form.retirementAge
     ? parseInt(form.retirementAge) - parseInt(form.currentAge)
     : null;
+
+  // Concessional cap warning: SG + salary sacrifice combined
+  const totalConcessional = (sgAnnual(form.salary) || 0) + (parseFloat(form.salarySacrifice) || 0);
+  const concessionalWarning = totalConcessional > CONCESSIONAL_CAP;
+
+  // NCC cap warning
+  const nccWarning = parseFloat(form.ncc) > NCC_CAP;
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -361,6 +400,18 @@ export default function ForecastInputPage() {
         .field-input::placeholder { color: #bbb; }
         .field-hint { margin-top: 7px; font-size: 13px; color: var(--muted); }
 
+        .field-explainer {
+          background: rgba(13,31,53,0.04);
+          border-left: 3px solid var(--cream2);
+          border-radius: 0 8px 8px 0;
+          padding: 12px 16px;
+          margin-bottom: 16px;
+          font-size: 13px;
+          color: var(--muted);
+          line-height: 1.6;
+        }
+        .field-explainer strong { color: var(--navy); font-weight: 600; }
+
         .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
 
         .spend-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; margin-bottom: 12px; }
@@ -378,6 +429,11 @@ export default function ForecastInputPage() {
         .sg-icon { font-size: 22px; flex-shrink: 0; }
         .sg-text { font-size: 14px; color: var(--navy); line-height: 1.4; }
         .sg-text strong { color: #8a6c1a; font-weight: 600; }
+
+        .warning-callout { background: rgba(180,100,40,0.07); border: 1.5px solid rgba(180,100,40,0.3); border-radius: 10px; padding: 14px 18px; margin-top: -8px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 12px; }
+        .warning-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .warning-text { font-size: 13px; color: #7a4a1a; line-height: 1.5; }
+        .warning-text strong { font-weight: 600; }
 
         .review-card { background: #fff; border: 2px solid var(--cream2); border-radius: 12px; overflow: hidden; margin-bottom: 28px; }
         .review-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--cream2); font-size: 14px; }
@@ -407,6 +463,8 @@ export default function ForecastInputPage() {
         @keyframes spin { to { transform: rotate(360deg); } }
 
         .optional-tag { font-size: 11px; font-weight: 400; color: #aaa; text-transform: none; letter-spacing: 0; margin-left: 6px; }
+
+        .section-divider { border: none; border-top: 1px solid var(--cream2); margin: 8px 0 28px; }
 
         @media (max-width: 768px) {
           .harbour-wrap { grid-template-columns: 1fr; }
@@ -483,16 +541,26 @@ export default function ForecastInputPage() {
           {/* Step 3 */}
           {step === 3 && (
             <div onKeyDown={handleKeyDown}>
-              <h1 className="step-heading">Your super<br />balance today.</h1>
-              <p className="step-sub">Check your latest super statement or fund app for the total across all funds.</p>
+              <h1 className="step-heading">Your super<br />balance & contributions.</h1>
+              <p className="step-sub">Enter your current balance and any contributions going into your super each year.</p>
+
+              {/* Current balance */}
               <div className="field-group">
                 <label className="field-label">Current super balance</label>
                 <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $280,000" value={form.superBalanceDisplay} onChange={e => handleSuperBalance(e.target.value)} onBlur={handleSuperBalanceBlur} autoFocus />
+                <p className="field-hint">Check your latest super statement or fund app for the total across all funds.</p>
               </div>
+
+              <hr className="section-divider" />
+
+              {/* Salary & SG */}
               <div className="field-group">
-                <label className="field-label">Annual salary <span className="optional-tag">(optional — for SG projection)</span></label>
+                <label className="field-label">Annual salary <span className="optional-tag">(optional)</span></label>
+                <div className="field-explainer">
+                  Your employer is required by law to contribute <strong>12% of your salary</strong> into your super — this is the <strong>Superannuation Guarantee (SG)</strong>. It's pre-tax money, so it's taxed at <strong>15% on entry</strong> into your fund (lower than your income tax rate, which is why super is tax-effective).
+                </div>
                 <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $95,000" value={form.salaryDisplay} onChange={e => handleSalary(e.target.value)} onBlur={handleSalaryBlur} />
-                <p className="field-hint">Used to calculate your employer's 12% super contributions until retirement.</p>
+                <p className="field-hint">Used to calculate your employer's 12% SG contributions until retirement.</p>
               </div>
               {sgAmount !== null && (
                 <div className="sg-callout">
@@ -500,6 +568,47 @@ export default function ForecastInputPage() {
                   <div className="sg-text">Your employer is contributing approximately <strong>{formatCurrency(sgAmount)} per fortnight</strong> ({formatCurrency(sgAnnual(form.salary))} per year) to your super.</div>
                 </div>
               )}
+
+              <hr className="section-divider" />
+
+              {/* Salary sacrifice */}
+              <div className="field-group">
+                <label className="field-label">Salary sacrifice <span className="optional-tag">(optional)</span></label>
+                <div className="field-explainer">
+                  <strong>Salary sacrifice</strong> is an arrangement with your employer to contribute extra money into super from your <strong>pre-tax salary</strong>. Like SG, it's taxed at 15% on entry — but because this replaces income that would otherwise be taxed at your marginal rate, most people pay less tax overall. Salary sacrifice and SG contributions are counted together toward a combined <strong>concessional (pre-tax) cap of {formatCurrency(CONCESSIONAL_CAP)}/yr</strong>.
+                </div>
+                <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $10,000" value={form.salarySacrificeDisplay} onChange={e => handleSalarySacrifice(e.target.value)} onBlur={handleSalarySacrificeBlur} />
+                <p className="field-hint">Annual amount only — enter what you salary sacrifice per year.</p>
+              </div>
+              {concessionalWarning && (
+                <div className="warning-callout">
+                  <div className="warning-icon">⚠️</div>
+                  <div className="warning-text">
+                    <strong>Concessional cap check:</strong> Your combined SG ({formatCurrency(sgAnnual(form.salary))}/yr) and salary sacrifice ({formatCurrency(form.salarySacrifice)}/yr) total {formatCurrency(totalConcessional)}/yr — above the {formatCurrency(CONCESSIONAL_CAP)} concessional cap. Amounts above the cap are taxed at your marginal rate. Some funds (e.g. GESB) are exempt — check with your fund or a financial adviser.
+                  </div>
+                </div>
+              )}
+
+              <hr className="section-divider" />
+
+              {/* Non-concessional contributions */}
+              <div className="field-group">
+                <label className="field-label">Non-concessional contributions <span className="optional-tag">(optional)</span></label>
+                <div className="field-explainer">
+                  <strong>Non-concessional contributions (NCC)</strong> are personal contributions you make into super from your <strong>after-tax savings</strong> — money you've already paid income tax on. Because tax has already been paid, there's <strong>no tax on entry</strong> into your fund. These are capped at <strong>{formatCurrency(NCC_CAP)}/yr</strong>. This is different to salary sacrifice — NCC comes out of your own savings, not your pay.
+                </div>
+                <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $20,000" value={form.nccDisplay} onChange={e => handleNcc(e.target.value)} onBlur={handleNccBlur} />
+                <p className="field-hint">Annual amount you plan to contribute from your own savings.</p>
+              </div>
+              {nccWarning && (
+                <div className="warning-callout">
+                  <div className="warning-icon">⚠️</div>
+                  <div className="warning-text">
+                    <strong>NCC cap check:</strong> Your non-concessional contributions ({formatCurrency(form.ncc)}/yr) exceed the {formatCurrency(NCC_CAP)}/yr cap. Excess NCC may be subject to additional tax. Consider checking with a financial adviser.
+                  </div>
+                </div>
+              )}
+
               <div className="btn-row">
                 <button className="btn-back" onClick={goBack}>← Back</button>
                 <button className="btn-next" onClick={goNext}>Continue →</button>
@@ -582,7 +691,9 @@ export default function ForecastInputPage() {
                 <div className="review-section-head">Superannuation</div>
                 <div className="review-row"><span className="review-key">Current balance</span><span className="review-val">{formatCurrency(form.superBalance)}</span></div>
                 {form.salary && <div className="review-row"><span className="review-key">Annual salary</span><span className="review-val">{formatCurrency(form.salary)}</span></div>}
-                {sgAmount !== null && <div className="review-row"><span className="review-key">SG contributions</span><span className="review-val">{formatCurrency(sgAmount)}/fn ({formatCurrency(sgAmount * 26)}/yr)</span></div>}
+                {sgAmount !== null && <div className="review-row"><span className="review-key">SG contributions (after 15% tax)</span><span className="review-val">{formatCurrency(sgAmount * 0.85)}/fn · {formatCurrency(sgAnnual(form.salary) * 0.85)}/yr</span></div>}
+                {form.salarySacrifice && <div className="review-row"><span className="review-key">Salary sacrifice (after 15% tax)</span><span className="review-val">{formatCurrency(parseFloat(form.salarySacrifice) * 0.85)}/yr</span></div>}
+                {form.ncc && <div className="review-row"><span className="review-key">Non-concessional contributions</span><span className="review-val">{formatCurrency(form.ncc)}/yr</span></div>}
                 <div className="review-section-head">Retirement plan</div>
                 <div className="review-row"><span className="review-key">Target retirement age</span><span className="review-val">{form.retirementAge}</span></div>
                 <div className="review-row"><span className="review-key">Age Pension eligibility</span><span className="review-val">Age 67</span></div>

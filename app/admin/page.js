@@ -52,8 +52,8 @@ const SECTIONS = [
     id: 'super',
     icon: '🏦',
     title: 'Superannuation rules (ATO)',
-    sub: 'Transfer balance cap updated annually — drawdown rates rarely change',
-    keys: ['transfer_balance_cap', 'drawdown_under_65', 'drawdown_65_74', 'drawdown_75_79'],
+    sub: 'Transfer balance cap and contribution caps updated annually — drawdown rates rarely change',
+    keys: ['transfer_balance_cap', 'concessional_cap', 'non_concessional_cap', 'drawdown_under_65', 'drawdown_65_74', 'drawdown_75_79'],
   },
   {
     id: 'model',
