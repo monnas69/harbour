@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /forecast/new
+
+# Block authenticated and private pages from indexing
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /auth/
+Disallow: /forecast/preview
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://harbourapp.com.au/sitemap.xml
+
+
