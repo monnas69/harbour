@@ -327,16 +327,22 @@ export default function DashboardPage() {
             <div className="hd-account-row">
               <span className="hd-account-label">Delete account</span>
               <button
-                className="hd-account-action"
-                style={{ color: '#e08878' }}
-                onClick={() => {
-                  if (confirm('Are you sure? This will permanently delete your account and all saved forecasts.')) {
-                    alert('Account deletion will be wired up before launch.');
-                  }
-                }}
-              >
-                Delete all data
-              </button>
+  className="hd-account-action"
+  style={{ color: '#e08878' }}
+  onClick={async () => {
+    if (!confirm('Are you sure? This will permanently delete your account and all saved forecasts. This cannot be undone.')) return;
+    const res = await fetch('/api/account/delete', { method: 'DELETE' });
+    if (res.ok) {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push('/?deleted=true');
+    } else {
+      alert('Something went wrong. Please try again or contact hello@harbourapp.com.au.');
+    }
+  }}
+>
+  Delete all data
+</button>
             </div>
           </div>
 
