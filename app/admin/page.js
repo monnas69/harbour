@@ -318,15 +318,15 @@ const styles = `
 
   .adm-root {
     font-family: 'DM Sans', sans-serif;
-    background: #0d1f35;
-    color: #f5f0e8;
+    background: #ffffff;
+    color: #1a1a1a;
     min-height: 100vh;
     font-size: 14px;
   }
 
   .adm-loading {
     min-height: 100vh;
-    background: #0d1f35;
+    background: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -338,8 +338,8 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     padding: 14px 32px;
-    border-bottom: 1px solid rgba(201,168,76,0.15);
-    background: #0d1f35;
+    border-bottom: 1px solid #e8e8e8;
+    background: #ffffff;
     position: sticky;
     top: 0;
     z-index: 100;
@@ -358,14 +358,14 @@ const styles = `
     font-family: 'Playfair Display', serif;
     font-size: 17px;
     font-weight: 600;
-    color: #f5f0e8;
+    color: #0d1f35;
     letter-spacing: 0.04em;
   }
 
   .adm-badge {
-    background: rgba(201,168,76,0.1);
-    border: 1px solid rgba(201,168,76,0.25);
-    color: #c9a84c;
+    background: #f5f0e8;
+    border: 1px solid #e0d8c8;
+    color: #8a6e2e;
     font-size: 10px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -376,11 +376,11 @@ const styles = `
 
   .adm-back-link {
     font-size: 13px;
-    color: rgba(245,240,232,0.45);
+    color: #999;
     text-decoration: none;
     transition: color 0.15s;
   }
-  .adm-back-link:hover { color: #f5f0e8; }
+  .adm-back-link:hover { color: #0d1f35; }
 
   /* Main */
   .adm-main {
@@ -395,13 +395,13 @@ const styles = `
     font-family: 'Playfair Display', serif;
     font-size: 26px;
     font-weight: 600;
-    color: #f5f0e8;
+    color: #0d1f35;
     margin-bottom: 6px;
   }
 
   .adm-sub {
     font-size: 13px;
-    color: rgba(245,240,232,0.45);
+    color: #888;
     line-height: 1.5;
   }
 
@@ -413,7 +413,7 @@ const styles = `
     font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #c9a84c;
+    color: #9a7d3a;
     margin-bottom: 10px;
     padding-left: 2px;
   }
@@ -422,14 +422,14 @@ const styles = `
   .adm-table {
     width: 100%;
     border-collapse: collapse;
-    border: 1px solid rgba(201,168,76,0.1);
+    border: 1px solid #e8e8e8;
     border-radius: 6px;
     overflow: hidden;
   }
 
   .adm-table thead tr {
-    background: rgba(255,255,255,0.03);
-    border-bottom: 1px solid rgba(201,168,76,0.1);
+    background: #f9f9f9;
+    border-bottom: 1px solid #e8e8e8;
   }
 
   .adm-table th {
@@ -437,7 +437,7 @@ const styles = `
     font-weight: 500;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: rgba(245,240,232,0.35);
+    color: #aaa;
     padding: 9px 16px;
     text-align: left;
   }
@@ -446,27 +446,27 @@ const styles = `
   .adm-th-date  { text-align: right; width: 130px; }
 
   .adm-table tbody tr {
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid #f0f0f0;
     transition: background 0.1s;
   }
   .adm-table tbody tr:last-child { border-bottom: none; }
-  .adm-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .adm-table tbody tr:hover { background: #fafafa; }
 
-  .adm-row-editing { background: rgba(201,168,76,0.04) !important; }
-  .adm-row-calculated { opacity: 0.6; }
+  .adm-row-editing { background: #fffdf5 !important; }
+  .adm-row-calculated { opacity: 0.55; }
 
   .adm-td-label { padding: 13px 16px; }
 
   .adm-field-name {
     font-size: 13px;
     font-weight: 400;
-    color: #f5f0e8;
+    color: #1a1a1a;
     margin-bottom: 2px;
   }
 
   .adm-field-key {
     font-size: 11px;
-    color: rgba(245,240,232,0.25);
+    color: #ccc;
     font-family: 'DM Mono', 'Courier New', monospace;
   }
 
@@ -477,30 +477,30 @@ const styles = `
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
-    background: rgba(13,31,53,0.8);
-    border: 1px solid rgba(201,168,76,0.15);
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
     border-radius: 4px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
-    color: #f5f0e8;
+    color: #0d1f35;
     transition: border-color 0.15s, background 0.15s;
     font-variant-numeric: tabular-nums;
   }
   .adm-value-pill:hover {
-    border-color: rgba(201,168,76,0.4);
-    background: rgba(13,31,53,1);
+    border-color: #c9a84c;
+    background: #fffdf7;
   }
 
   .adm-value-calculated { cursor: default; }
   .adm-value-calculated:hover {
-    border-color: rgba(201,168,76,0.15);
-    background: rgba(13,31,53,0.8);
+    border-color: #e0e0e0;
+    background: #ffffff;
   }
 
   .adm-pencil {
     font-size: 11px;
-    color: rgba(245,240,232,0.3);
+    color: #bbb;
     opacity: 0;
     transition: opacity 0.15s;
   }
@@ -508,7 +508,7 @@ const styles = `
 
   .adm-calculated-tag {
     font-size: 10px;
-    color: rgba(201,168,76,0.5);
+    color: #c9a84c;
     letter-spacing: 0.05em;
   }
 
@@ -527,10 +527,10 @@ const styles = `
     font-weight: 500;
     font-family: 'DM Sans', sans-serif;
     padding: 6px 10px;
-    background: #0d1f35;
+    background: #ffffff;
     border: 1px solid #c9a84c;
     border-radius: 4px;
-    color: #f5f0e8;
+    color: #0d1f35;
     outline: none;
     box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
   }
@@ -540,37 +540,37 @@ const styles = `
     font-size: 12px;
     font-weight: 500;
     font-family: 'DM Sans', sans-serif;
-    background: #c9a84c;
-    color: #0d1f35;
+    background: #0d1f35;
+    color: #ffffff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.15s;
   }
-  .adm-btn-save:hover:not(:disabled) { background: #e0c070; }
-  .adm-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  .adm-btn-save:hover:not(:disabled) { background: #1a3352; }
+  .adm-btn-save:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .adm-btn-cancel {
     padding: 5px 10px;
     font-size: 12px;
     font-family: 'DM Sans', sans-serif;
     background: transparent;
-    border: 1px solid rgba(245,240,232,0.15);
+    border: 1px solid #e0e0e0;
     border-radius: 4px;
-    color: rgba(245,240,232,0.5);
+    color: #888;
     cursor: pointer;
     transition: color 0.15s, border-color 0.15s;
   }
   .adm-btn-cancel:hover {
-    color: #f5f0e8;
-    border-color: rgba(245,240,232,0.3);
+    color: #1a1a1a;
+    border-color: #aaa;
   }
 
   .adm-td-date {
     padding: 13px 16px;
     text-align: right;
     font-size: 12px;
-    color: rgba(245,240,232,0.3);
+    color: #bbb;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
@@ -581,9 +581,9 @@ const styles = `
     bottom: 24px;
     right: 24px;
     z-index: 999;
-    background: rgba(20,41,68,0.97);
-    border: 1px solid rgba(91,158,110,0.4);
-    color: #7ec896;
+    background: #ffffff;
+    border: 1px solid #c8e6c9;
+    color: #2e7d32;
     font-size: 13px;
     padding: 10px 18px;
     border-radius: 5px;
@@ -591,6 +591,7 @@ const styles = `
     transform: translateY(6px);
     transition: opacity 0.2s, transform 0.2s;
     pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
   .adm-toast-visible {
     opacity: 1;
@@ -601,8 +602,8 @@ const styles = `
   .adm-spinner {
     width: 32px;
     height: 32px;
-    border: 2px solid rgba(201,168,76,0.2);
-    border-top-color: #c9a84c;
+    border: 2px solid #e8e8e8;
+    border-top-color: #0d1f35;
     border-radius: 50%;
     animation: adm-spin 0.7s linear infinite;
   }
