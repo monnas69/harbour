@@ -6,6 +6,7 @@ const PROTECTED = [
   '/dashboard',
   '/forecast/',   // covers /forecast/[id] but NOT /forecast/new or /forecast/preview
   '/admin',
+  '/profile',
 ];
 
 // Routes that are always public even if they start with /forecast/
@@ -54,5 +55,6 @@ export const config = {
     '/dashboard/:path*',
     '/forecast/:path*',
     '/admin/:path*',
+    '/profile/:path*',
   ],
 };
