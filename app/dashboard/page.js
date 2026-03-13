@@ -91,8 +91,8 @@ export default function DashboardPage() {
   // Any stale forecasts?
   const hasStale = forecasts.some(isStale);
 
-  // User display name — first part of email
-  const displayName = user?.email?.split('@')[0] || 'there';
+  // User display name — prefer profile name, fall back to email prefix
+  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'there';
   const userInitial = displayName[0].toUpperCase();
 
   // Greeting
@@ -295,6 +295,10 @@ export default function DashboardPage() {
               <span className="hd-account-value">
                 {user?.created_at ? fmtDateLong(user.created_at) : '—'}
               </span>
+            </div>
+            <div className="hd-account-row">
+              <span className="hd-account-label">Profile settings</span>
+              <a href="/profile" className="hd-account-action">Edit profile →</a>
             </div>
           </div>
 
@@ -679,7 +683,7 @@ const styles = `
     color: #c9a84c; font-size: 13px;
     cursor: pointer; background: none; border: none;
     font-family: 'DM Sans', sans-serif;
-    transition: color 0.2s; padding: 0;
+    transition: color 0.2s; padding: 0; text-decoration: none;
   }
   .hd-account-action:hover { color: #e8cc88; }
 
