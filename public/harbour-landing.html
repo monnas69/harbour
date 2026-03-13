@@ -902,16 +902,17 @@
   </div>
 </footer>
 <script>
-  // Show dashboard link if user is already logged in
   (function () {
     try {
-      const key = 'sb-hjavfsgiynsgwncrzhjl-auth-token';
-      const session = localStorage.getItem(key);
-      if (session) {
-        const parsed = JSON.parse(session);
-        if (parsed?.access_token) {
-          document.getElementById('nav-right').innerHTML =
-            '<a href="/dashboard" class="btn-nav">My dashboard</a>';
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+          const val = JSON.parse(localStorage.getItem(key));
+          if (val?.access_token) {
+            document.getElementById('nav-right').innerHTML =
+              '<a href="/dashboard" class="btn-nav">My dashboard</a>';
+            break;
+          }
         }
       }
     } catch (e) {}
