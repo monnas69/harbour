@@ -14,7 +14,7 @@ const PUBLIC_FORECAST = [
   '/forecast/preview',
 ];
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // Check if this route needs protection
