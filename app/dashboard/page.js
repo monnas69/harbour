@@ -131,10 +131,10 @@ export default function DashboardPage() {
             <span className="hd-logo-text">Harbour</span>
           </a>
           <div className="hd-nav-right">
-            <div className="hd-user-chip">
-              <div className="hd-user-avatar">{userInitial}</div>
-              <span>{user?.email}</span>
-            </div>
+            <a href="/profile" className="hd-user-chip" style={{ textDecoration: 'none' }}>
+  <div className="hd-user-avatar">{userInitial}</div>
+  <span>{user?.email}</span>
+</a>
             <button className="hd-btn-ghost" onClick={handleSignOut}>Sign out</button>
           </div>
         </nav>
