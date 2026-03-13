@@ -478,8 +478,8 @@ export default function ForecastInputPage() {
 
       <div className="harbour-wrap">
         <aside className="sidebar">
-          <div className="sidebar-logo">Harbour</div>
-          <div className="sidebar-tagline">Retirement planning</div>
+          <a href="/" className="sidebar-logo" style={{ textDecoration: 'none' }}>Harbour</a>
+<div className="sidebar-tagline">Retirement planning</div>
           <ul className="step-list">
             {STEPS.map((s) => {
               const status = s.id < step ? 'done' : s.id === step ? 'active' : '';
