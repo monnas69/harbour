@@ -901,6 +901,22 @@
     </div>
   </div>
 </footer>
+<script>
+  // Show dashboard link if user is already logged in
+  (function () {
+    try {
+      const key = 'sb-hjavfsgiynsgwncrzhjl-auth-token';
+      const session = localStorage.getItem(key);
+      if (session) {
+        const parsed = JSON.parse(session);
+        if (parsed?.access_token) {
+          document.getElementById('nav-right').innerHTML =
+            '<a href="/dashboard" class="btn-nav">My dashboard</a>';
+        }
+      }
+    } catch (e) {}
+  })();
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
