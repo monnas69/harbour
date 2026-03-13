@@ -243,16 +243,20 @@ export default function ForecastPreviewPage() {
               <div className="hf-stat-value gold">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
               <div className="hf-stat-sub">Median estimate at age {retirementAge}<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
             </div>
-            <div className="hf-stat-value green">
-                {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible'}
-              </div>
-              <div className="hf-stat-sub">
-                {pensionAnnual > 0
-                  ? <>{fmtFull(pensionFortnightly)} per fortnight from age 67<br />based on assets &amp; income tests</>
-                  : <>Not entitled from age 67<br />Projected balance exceeds assets or income test threshold</>
-                }
-              </div>
-            <div className="hf-stat-card hf-stat-blue">
+            </div>
+<div className="hf-stat-card hf-stat-green">
+  <div className="hf-stat-label">Estimated Age Pension</div>
+  <div className="hf-stat-value green">
+    {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible'}
+  </div>
+  <div className="hf-stat-sub">
+    {pensionAnnual > 0
+      ? <>{fmtFull(pensionFortnightly)} per fortnight from age 67<br />based on assets &amp; income tests</>
+      : <>Not entitled from age 67<br />Projected balance exceeds assets or income test threshold</>
+    }
+  </div>
+</div>
+<div className="hf-stat-card hf-stat-blue">
               <div className="hf-stat-label">Funds projected to last until</div>
               <div className="hf-stat-value blue">{fmtAge(fundsLastP50)}</div>
               <div className="hf-stat-sub">Median scenario<br />Best case {fmtAge(fundsLastP90)} · Worst case {fmtAge(fundsLastP10)}</div>
