@@ -904,16 +904,9 @@
 <script>
   (function () {
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-          const val = JSON.parse(localStorage.getItem(key));
-          if (val?.access_token) {
-            document.getElementById('nav-right').innerHTML =
-              '<a href="/dashboard" class="btn-nav">My dashboard</a>';
-            break;
-          }
-        }
+      if (document.cookie.split(';').some(c => c.trim().startsWith('sb-') && c.includes('-auth-token'))) {
+        document.getElementById('nav-right').innerHTML =
+          '<a href="/dashboard" class="btn-nav">My dashboard</a>';
       }
     } catch (e) {}
   })();
