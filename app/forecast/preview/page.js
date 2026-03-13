@@ -238,29 +238,32 @@ export default function ForecastPreviewPage() {
 
           {/* Stat cards */}
           <div className="hf-stat-grid">
+
             <div className="hf-stat-card hf-stat-gold">
               <div className="hf-stat-label">Projected super at retirement</div>
               <div className="hf-stat-value gold">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
               <div className="hf-stat-sub">Median estimate at age {retirementAge}<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
             </div>
+
+            <div className="hf-stat-card hf-stat-green">
+              <div className="hf-stat-label">Estimated Age Pension</div>
+              <div className="hf-stat-value green">
+                {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible'}
+              </div>
+              <div className="hf-stat-sub">
+                {pensionAnnual > 0
+                  ? <>{fmtFull(pensionFortnightly)} per fortnight from age 67<br />based on assets &amp; income tests</>
+                  : <>Not entitled from age 67<br />Projected balance exceeds assets or income test threshold</>
+                }
+              </div>
             </div>
-<div className="hf-stat-card hf-stat-green">
-  <div className="hf-stat-label">Estimated Age Pension</div>
-  <div className="hf-stat-value green">
-    {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible'}
-  </div>
-  <div className="hf-stat-sub">
-    {pensionAnnual > 0
-      ? <>{fmtFull(pensionFortnightly)} per fortnight from age 67<br />based on assets &amp; income tests</>
-      : <>Not entitled from age 67<br />Projected balance exceeds assets or income test threshold</>
-    }
-  </div>
-</div>
-<div className="hf-stat-card hf-stat-blue">
+
+            <div className="hf-stat-card hf-stat-blue">
               <div className="hf-stat-label">Funds projected to last until</div>
               <div className="hf-stat-value blue">{fmtAge(fundsLastP50)}</div>
               <div className="hf-stat-sub">Median scenario<br />Best case {fmtAge(fundsLastP90)} · Worst case {fmtAge(fundsLastP10)}</div>
             </div>
+
           </div>
 
           {/* Chart */}
@@ -330,7 +333,6 @@ const baseStyles = `
   .hf-btn-gold { background: #c9a84c; border: none; color: #0d1f35; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 9px 20px; border-radius: 3px; cursor: pointer; transition: all 0.2s; }
   .hf-btn-gold:hover { background: #e8cc88; }
 
-  /* Save banner */
   .hf-save-banner { background: rgba(20,41,68,0.9); border-bottom: 1px solid rgba(201,168,76,0.2); padding: 16px 40px; position: relative; z-index: 10; }
   .hf-save-banner-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
   .hf-save-banner-title { font-size: 15px; font-weight: 500; color: #f5f0e8; margin-bottom: 3px; }
@@ -384,7 +386,6 @@ const baseStyles = `
   .hf-summary-row-val.gold  { color: #c9a84c; }
   .hf-summary-row-val.red   { color: #e08878; }
 
-  /* Bottom CTA */
   .hf-bottom-cta { background: rgba(20,41,68,0.7); border: 1px solid rgba(201,168,76,0.2); border-radius: 8px; padding: 36px 40px; margin-bottom: 28px; text-align: center; }
   .hf-bottom-cta-title { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 600; color: #f5f0e8; margin-bottom: 10px; }
   .hf-bottom-cta-sub { font-size: 15px; color: #8a9bb0; font-weight: 300; line-height: 1.6; margin-bottom: 24px; max-width: 520px; margin-left: auto; margin-right: auto; }
