@@ -205,7 +205,7 @@ export default function ForecastPreviewPage() {
           </a>
           <div className="hf-nav-right">
             <button className="hf-btn-outline" onClick={() => router.push('/forecast/new')}>✎ New forecast</button>
-            <button className="hf-btn-gold" onClick={() => router.push('/auth/login')}>Save this forecast →</button>
+            <button className="hf-btn-gold" onClick={() => router.push('/auth/login?mode=signup')}>Save this forecast →</button>
           </div>
         </nav>
 
