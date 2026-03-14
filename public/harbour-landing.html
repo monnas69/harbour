@@ -1,20 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- ============================================================
-     HARBOUR — Landing Page SEO Tags
-     Add these inside the <head> tag of harbour-landing.html,
-     replacing any existing <title> tag you may already have.
-     ============================================================ -->
-
-<!-- Primary SEO -->
 <title>Harbour — Australian Retirement Calculator & Super Forecaster</title>
 <meta name="description" content="Plan your retirement with confidence. Harbour models your superannuation, Age Pension entitlements and spending across 1,000 scenarios — free for Australians aged 25–75.">
 <meta name="keywords" content="retirement calculator australia, superannuation calculator, age pension calculator, retirement planning, super forecast, monte carlo retirement, DIY retirement planning australia">
 <meta name="author" content="Harbour">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://harbourapp.com.au">
-
-<!-- Open Graph (Facebook, LinkedIn, WhatsApp previews) -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://harbourapp.com.au">
 <meta property="og:title" content="Harbour — Australian Retirement Calculator & Super Forecaster">
@@ -25,15 +16,13 @@
 <meta property="og:image:alt" content="Harbour retirement planning app — Monte Carlo forecast chart">
 <meta property="og:locale" content="en_AU">
 <meta property="og:site_name" content="Harbour">
-
-<!-- Twitter / X card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:url" content="https://harbourapp.com.au">
 <meta name="twitter:title" content="Harbour — Australian Retirement Calculator & Super Forecaster">
 <meta name="twitter:description" content="Model your super, Age Pension and retirement spending across 1,000 scenarios. Free for Australians.">
 <meta name="twitter:image" content="https://harbourapp.com.au/og-image.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Structured data (Google rich results — SoftwareApplication schema) -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -85,7 +74,6 @@
     overflow-x: hidden;
   }
 
-  /* Grid background */
   body::before {
     content: '';
     position: fixed; inset: 0;
@@ -169,9 +157,7 @@
     opacity: 0; animation: fade-up 0.7s 0.35s ease forwards;
   }
 
-  .hero-headline em {
-    font-style: italic; color: var(--gold);
-  }
+  .hero-headline em { font-style: italic; color: var(--gold); }
 
   .hero-subtext {
     font-size: 18px; font-weight: 300;
@@ -221,13 +207,18 @@
     opacity: 0; animation: fade-up 0.7s 0.8s ease forwards;
   }
 
-  /* ─── FORECAST PREVIEW (hero right side) ─── */
+  /* ─── HERO LAYOUT ─── */
+  .hero-wrap {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 0 60px;
+  }
+
   .hero-layout {
     display: grid; grid-template-columns: 1fr 1fr;
     gap: 80px; align-items: center;
   }
 
-  .hero-left {}
   .hero-right {
     opacity: 0; animation: fade-up 0.8s 0.7s ease forwards;
   }
@@ -268,7 +259,6 @@
     letter-spacing: 0.06em; text-transform: uppercase;
   }
 
-  /* Mini stats */
   .preview-stats {
     display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 12px; margin-bottom: 22px;
@@ -293,17 +283,14 @@
     letter-spacing: 0.08em; color: var(--text-muted);
   }
 
-  /* Sparkline chart */
   .preview-chart { width: 100%; height: 120px; position: relative; }
   .preview-chart canvas { width: 100%; height: 100%; }
 
-  .chart-legend {
-    display: flex; gap: 16px; margin-top: 12px;
-  }
+  .chart-legend { display: flex; gap: 16px; margin-top: 12px; }
   .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
   .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-  /* ─── SECTION BASE ─── */
+  /* ─── SECTIONS ─── */
   section {
     position: relative; z-index: 1;
     padding: 100px 60px;
@@ -329,7 +316,6 @@
     max-width: 520px;
   }
 
-  /* ─── DIVIDER ─── */
   .divider {
     border: none;
     border-top: 1px solid rgba(201,168,76,0.08);
@@ -347,8 +333,6 @@
     background: rgba(20,41,68,0.55);
     border: 1px solid var(--border);
     border-radius: 6px; padding: 36px 32px;
-    position: relative; overflow: hidden;
-    transition: border-color 0.3s, transform 0.3s;
     opacity: 0; transform: translateY(24px);
     transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.2s;
   }
@@ -397,7 +381,6 @@
     display: flex; align-items: flex-start; gap: 16px;
     padding: 20px 24px;
     border: 1px solid transparent; border-radius: 5px;
-    cursor: default; transition: all 0.25s;
     opacity: 0; transform: translateX(-20px);
     transition: opacity 0.5s ease, transform 0.5s ease, background 0.25s, border-color 0.25s;
   }
@@ -424,7 +407,6 @@
     font-weight: 300; line-height: 1.6;
   }
 
-  /* Big result card */
   .result-showcase {
     background: rgba(20,41,68,0.75);
     border: 1px solid rgba(201,168,76,0.18);
@@ -450,10 +432,7 @@
     margin-bottom: 20px; font-weight: 500;
   }
 
-  .result-big {
-    display: flex; flex-direction: column; gap: 16px;
-    margin-bottom: 28px;
-  }
+  .result-big { display: flex; flex-direction: column; gap: 16px; margin-bottom: 28px; }
 
   .result-row {
     display: flex; justify-content: space-between; align-items: center;
@@ -462,7 +441,6 @@
   }
 
   .result-row:last-child { border-bottom: none; padding-bottom: 0; }
-
   .result-row-label { font-size: 13px; color: var(--text-muted); font-weight: 300; }
 
   .result-row-value {
@@ -481,7 +459,7 @@
     font-weight: 300; line-height: 1.6; font-style: italic;
   }
 
-  /* ─── AUSTRALIAN BUILT ─── */
+  /* ─── TRUST STRIP ─── */
   .trust-strip {
     background: rgba(20,41,68,0.4);
     border-top: 1px solid var(--border);
@@ -512,7 +490,7 @@
   .trust-icon svg { width: 16px; height: 16px; }
   .trust-item strong { display: block; font-weight: 500; color: var(--cream); margin-bottom: 1px; }
 
-  /* ─── CTA SECTION ─── */
+  /* ─── CTA ─── */
   .cta-section {
     text-align: center; padding: 120px 60px;
     position: relative; z-index: 1;
@@ -576,9 +554,11 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* ─── RESPONSIVE ─── */
+  /* ─── RESPONSIVE 960px ─── */
   @media (max-width: 960px) {
     nav { padding: 20px 24px; }
+    nav.scrolled { padding: 14px 24px; }
+    .hero-wrap { padding: 0 24px; }
     .hero, section { padding: 100px 24px 60px; }
     .hero-layout { grid-template-columns: 1fr; gap: 48px; }
     .hero-right { display: none; }
@@ -590,12 +570,15 @@
     .divider { margin: 0 24px; }
   }
 
+  /* ─── RESPONSIVE 480px ─── */
   @media (max-width: 480px) {
     nav { padding: 14px 16px; }
+    nav.scrolled { padding: 12px 16px; }
     .logo-text { font-size: 17px; }
     .btn-nav { padding: 8px 14px; font-size: 12px; }
     .nav-link { display: none; }
 
+    .hero-wrap { padding: 0 16px; }
     .hero, section { padding: 90px 16px 48px; }
     .hero-headline { font-size: 36px; }
     .hero-subtext { font-size: 15px; margin-bottom: 32px; }
@@ -643,13 +626,13 @@
     <span class="logo-text">Harbour</span>
   </a>
   <div class="nav-right" id="nav-right">
-  <a href="auth/login" class="nav-link">Sign in</a>
-  <a href="forecast/new" class="btn-nav">Get started</a>
-</div>
+    <a href="auth/login" class="nav-link">Sign in</a>
+    <a href="forecast/new" class="btn-nav">Get started</a>
+  </div>
 </nav>
 
 <!-- ─── HERO ─── -->
-<div style="position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:0 60px;">
+<div class="hero-wrap">
   <div class="hero" style="padding-left:0;padding-right:0;">
     <div class="hero-layout">
       <div class="hero-left">
@@ -675,7 +658,6 @@
         <p class="hero-note">Free to use · No financial advice · Projections only</p>
       </div>
 
-      <!-- Forecast preview card -->
       <div class="hero-right">
         <div class="preview-card">
           <div class="preview-header">
@@ -699,7 +681,6 @@
               <div class="pstat-label">Funds to age</div>
             </div>
           </div>
-          <!-- Canvas sparkline chart -->
           <div class="preview-chart">
             <canvas id="heroChart"></canvas>
           </div>
@@ -863,7 +844,6 @@
 
     </div>
 
-    <!-- Result showcase -->
     <div class="result-showcase" data-animate-right>
       <div class="result-label">Sample forecast result</div>
       <div class="result-big">
@@ -937,6 +917,7 @@
     </div>
   </div>
 </footer>
+
 <script>
   (function () {
     try {
@@ -950,13 +931,11 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
-// ─── Hero sparkline chart ───
 window.addEventListener('load', () => {
   const canvas = document.getElementById('heroChart');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  // Simulated data: ages 58–90
   const ages = Array.from({length: 33}, (_, i) => i + 58);
   const p90 = [420, 490, 567, 651, 744, 847, 960, 1085, 1098, 1089, 1075, 1055, 1028, 995, 954, 906, 850, 786, 713, 630, 538, 436, 324, 201, 97, 0, 0, 0, 0, 0, 0, 0, 0];
   const p50 = [420, 470, 524, 584, 650, 722, 800, 882, 889, 878, 860, 835, 802, 760, 710, 652, 584, 507, 420, 323, 215, 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -967,30 +946,9 @@ window.addEventListener('load', () => {
     data: {
       labels: ages,
       datasets: [
-        {
-          data: p90,
-          borderColor: '#5b9e6e',
-          borderWidth: 1.5,
-          tension: 0.4,
-          pointRadius: 0,
-          fill: false,
-        },
-        {
-          data: p50,
-          borderColor: '#c9a84c',
-          borderWidth: 2,
-          tension: 0.4,
-          pointRadius: 0,
-          fill: false,
-        },
-        {
-          data: p10,
-          borderColor: '#c0614a',
-          borderWidth: 1.5,
-          tension: 0.4,
-          pointRadius: 0,
-          fill: false,
-        },
+        { data: p90, borderColor: '#5b9e6e', borderWidth: 1.5, tension: 0.4, pointRadius: 0, fill: false },
+        { data: p50, borderColor: '#c9a84c', borderWidth: 2, tension: 0.4, pointRadius: 0, fill: false },
+        { data: p10, borderColor: '#c0614a', borderWidth: 1.5, tension: 0.4, pointRadius: 0, fill: false },
       ]
     },
     options: {
@@ -1001,10 +959,7 @@ window.addEventListener('load', () => {
       scales: {
         x: {
           grid: { color: 'rgba(255,255,255,0.03)' },
-          ticks: {
-            color: '#8a9bb0', font: { family: 'DM Sans', size: 9 },
-            maxTicksLimit: 6
-          }
+          ticks: { color: '#8a9bb0', font: { family: 'DM Sans', size: 9 }, maxTicksLimit: 6 }
         },
         y: {
           grid: { color: 'rgba(255,255,255,0.03)' },
@@ -1018,18 +973,14 @@ window.addEventListener('load', () => {
   });
 });
 
-// ─── Nav scroll effect ───
 const nav = document.getElementById('nav');
 window.addEventListener('scroll', () => {
   nav.classList.toggle('scrolled', window.scrollY > 40);
 });
 
-// ─── Intersection observer for scroll animations ───
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-    }
+    if (entry.isIntersecting) entry.target.classList.add('visible');
   });
 }, { threshold: 0.15 });
 
