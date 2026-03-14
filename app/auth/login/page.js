@@ -1,11 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '../../../lib/supabase'
 import { useRouter } from 'next/navigation'
 
-// view: 'signin' | 'signup' | 'forgot' | 'forgot-sent'
-export default function LoginPage() {
+// Inner component that uses useSearchParams — must be inside Suspense
+function LoginForm() {
   const [view, setView]         = useState('signin')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -50,6 +50,109 @@ export default function LoginPage() {
     }
   }
 
+  return (
+    <div className="login-card">
+
+      {/* ── Sign in ── */}
+      {view === 'signin' && (
+        <>
+          <h1 className="login-heading">Welcome back</h1>
+          <p className="login-subheading">Sign in to view your saved forecasts</p>
+          <form onSubmit={handleSubmit}>
+            <div className="login-field">
+              <label className="login-label">Email address</label>
+              <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+            </div>
+            <div className="login-field">
+              <div className="login-field-row">
+                <label className="login-label" style={{marginBottom:0}}>Password</label>
+                <button type="button" className="login-forgot-link" onClick={() => reset('forgot')}>Forgot password?</button>
+              </div>
+              <input className="login-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
+            </div>
+            {error && <div className="login-error">{error}</div>}
+            <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+          </form>
+          <hr className="login-divider" />
+          <p className="login-toggle">New to Harbour? <button className="login-toggle-link" onClick={() => reset('signup')}>Create free account</button></p>
+        </>
+      )}
+
+      {/* ── Sign up ── */}
+      {view === 'signup' && (
+        <>
+          <h1 className="login-heading">Create your account</h1>
+          <p className="login-subheading">Free to use · Your forecasts are saved to your account</p>
+          <form onSubmit={handleSubmit}>
+            <div className="login-field">
+              <label className="login-label">Email address</label>
+              <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+            </div>
+            <div className="login-field">
+              <label className="login-label">Password</label>
+              <input className="login-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" required />
+            </div>
+            {error && <div className="login-error">{error}</div>}
+            <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Creating account…' : 'Create account'}</button>
+          </form>
+          <hr className="login-divider" />
+          <p className="login-toggle">Already have an account? <button className="login-toggle-link" onClick={() => reset('signin')}>Sign in</button></p>
+          <p className="login-disclaimer">By creating an account you agree to our <a href="/privacy" style={{color:'#c9a84c'}}>Privacy Policy</a> and <a href="/terms" style={{color:'#c9a84c'}}>Terms of Service</a>.</p>
+        </>
+      )}
+
+      {/* ── Sign up confirmation ── */}
+      {view === 'signup-confirm' && (
+        <>
+          <h1 className="login-heading">Check your email</h1>
+          <p className="login-subheading">One more step to activate your account</p>
+          <div className="login-success">
+            We've sent a confirmation link to <strong>{email}</strong>. Click the link in the email to activate your account.<br /><br />
+            If you don't see it, check your spam folder.
+          </div>
+          <hr className="login-divider" />
+          <p className="login-toggle"><button className="login-toggle-link" onClick={() => reset('signin')}>← Back to sign in</button></p>
+        </>
+      )}
+
+      {/* ── Forgot password ── */}
+      {view === 'forgot' && (
+        <>
+          <h1 className="login-heading">Reset your password</h1>
+          <p className="login-subheading">Enter your email and we'll send you a reset link</p>
+          <form onSubmit={handleSubmit}>
+            <div className="login-field">
+              <label className="login-label">Email address</label>
+              <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+            </div>
+            {error && <div className="login-error">{error}</div>}
+            <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Sending…' : 'Send reset link'}</button>
+          </form>
+          <hr className="login-divider" />
+          <p className="login-toggle"><button className="login-toggle-link" onClick={() => reset('signin')}>← Back to sign in</button></p>
+        </>
+      )}
+
+      {/* ── Forgot password sent ── */}
+      {view === 'forgot-sent' && (
+        <>
+          <h1 className="login-heading">Check your email</h1>
+          <p className="login-subheading">A reset link is on its way</p>
+          <div className="login-success">
+            We've sent a password reset link to <strong>{email}</strong>. Click the link in the email to set a new password.<br /><br />
+            If you don't see it, check your spam folder.
+          </div>
+          <hr className="login-divider" />
+          <p className="login-toggle"><button className="login-toggle-link" onClick={() => reset('signin')}>← Back to sign in</button></p>
+        </>
+      )}
+
+    </div>
+  )
+}
+
+// ── Page wrapper with Suspense (required for useSearchParams in Next.js 15) ──
+export default function LoginPage() {
   return (
     <>
       <style>{`
@@ -179,13 +282,9 @@ export default function LoginPage() {
           box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
         }
 
-        .login-input::placeholder {
-          color: rgba(138,155,176,0.4);
-        }
+        .login-input::placeholder { color: rgba(138,155,176,0.4); }
 
-        .login-field {
-          margin-bottom: 20px;
-        }
+        .login-field { margin-bottom: 20px; }
 
         .login-field-row {
           display: flex;
@@ -254,10 +353,7 @@ export default function LoginPage() {
           box-shadow: 0 8px 24px rgba(201,168,76,0.3);
         }
 
-        .login-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
+        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .login-divider {
           border: none;
@@ -308,103 +404,9 @@ export default function LoginPage() {
         </nav>
 
         <main className="login-main">
-          <div className="login-card">
-
-            {/* ── Sign in ── */}
-            {view === 'signin' && (
-              <>
-                <h1 className="login-heading">Welcome back</h1>
-                <p className="login-subheading">Sign in to view your saved forecasts</p>
-                <form onSubmit={handleSubmit}>
-                  <div className="login-field">
-                    <label className="login-label">Email address</label>
-                    <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
-                  </div>
-                  <div className="login-field">
-                    <div className="login-field-row">
-                      <label className="login-label" style={{marginBottom:0}}>Password</label>
-                      <button type="button" className="login-forgot-link" onClick={() => reset('forgot')}>Forgot password?</button>
-                    </div>
-                    <input className="login-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
-                  </div>
-                  {error && <div className="login-error">{error}</div>}
-                  <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
-                </form>
-                <hr className="login-divider" />
-                <p className="login-toggle">New to Harbour? <button className="login-toggle-link" onClick={() => reset('signup')}>Create free account</button></p>
-              </>
-            )}
-
-            {/* ── Sign up ── */}
-            {view === 'signup' && (
-              <>
-                <h1 className="login-heading">Create your account</h1>
-                <p className="login-subheading">Free to use · Your forecasts are saved to your account</p>
-                <form onSubmit={handleSubmit}>
-                  <div className="login-field">
-                    <label className="login-label">Email address</label>
-                    <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
-                  </div>
-                  <div className="login-field">
-                    <label className="login-label">Password</label>
-                    <input className="login-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" required />
-                  </div>
-                  {error && <div className="login-error">{error}</div>}
-                  <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Creating account…' : 'Create account'}</button>
-                </form>
-                <hr className="login-divider" />
-                <p className="login-toggle">Already have an account? <button className="login-toggle-link" onClick={() => reset('signin')}>Sign in</button></p>
-                <p className="login-disclaimer">By creating an account you agree to our <a href="/privacy" style={{color:'#c9a84c'}}>Privacy Policy</a> and <a href="/terms" style={{color:'#c9a84c'}}>Terms of Service</a>.</p>
-              </>
-            )}
-
-            {/* ── Sign up confirmation ── */}
-            {view === 'signup-confirm' && (
-              <>
-                <h1 className="login-heading">Check your email</h1>
-                <p className="login-subheading">One more step to activate your account</p>
-                <div className="login-success">
-                  We've sent a confirmation link to <strong>{email}</strong>. Click the link in the email to activate your account.<br /><br />
-                  If you don't see it, check your spam folder.
-                </div>
-                <hr className="login-divider" />
-                <p className="login-toggle"><button className="login-toggle-link" onClick={() => reset('signin')}>← Back to sign in</button></p>
-              </>
-            )}
-
-            {/* ── Forgot password ── */}
-            {view === 'forgot' && (
-              <>
-                <h1 className="login-heading">Reset your password</h1>
-                <p className="login-subheading">Enter your email and we'll send you a reset link</p>
-                <form onSubmit={handleSubmit}>
-                  <div className="login-field">
-                    <label className="login-label">Email address</label>
-                    <input className="login-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
-                  </div>
-                  {error && <div className="login-error">{error}</div>}
-                  <button className="login-btn" type="submit" disabled={loading}>{loading ? 'Sending…' : 'Send reset link'}</button>
-                </form>
-                <hr className="login-divider" />
-                <p className="login-toggle"><button className="login-toggle-link" onClick={() => reset('signin')}>← Back to sign in</button></p>
-              </>
-            )}
-
-            {/* ── Forgot password sent ── */}
-            {view === 'forgot-sent' && (
-              <>
-                <h1 className="login-heading">Check your email</h1>
-                <p className="login-subheading">A reset link is on its way</p>
-                <div className="login-success">
-                  We've sent a password reset link to <strong>{email}</strong>. Click the link in the email to set a new password.<br /><br />
-                  If you don't see it, check your spam folder.
-                </div>
-                <hr className="login-divider" />
-                <p className="login-toggle"><button className="login-toggle-link" onClick={() => reset('signin')}>← Back to sign in</button></p>
-              </>
-            )}
-
-          </div>
+          <Suspense fallback={<div style={{color:'#8a9bb0',fontFamily:'DM Sans,sans-serif'}}>Loading…</div>}>
+            <LoginForm />
+          </Suspense>
         </main>
       </div>
     </>
