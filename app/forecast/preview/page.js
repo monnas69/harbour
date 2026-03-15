@@ -176,6 +176,7 @@ export default function ForecastPreviewPage() {
 
   const retirementBalanceMedian = outputs.retirement_balance_median;
   const pensionAnnual           = outputs.pension_annual;
+  const pensionEligibleFromAge  = outputs.pension_eligible_from_age || null;
   const fundsLastP10            = outputs.funds_last_p10;
   const fundsLastP50            = outputs.funds_last_p50;
   const fundsLastP90            = outputs.funds_last_p90;
@@ -205,7 +206,7 @@ export default function ForecastPreviewPage() {
           </a>
           <div className="hf-nav-right">
             <button className="hf-btn-outline" onClick={() => router.push('/forecast/new')}>✎ New forecast</button>
-            <button className="hf-btn-gold" onClick={() => router.push('/auth/login?mode=signup')}>Save this forecast →</button>
+            <button className="hf-btn-gold" onClick={() => router.push('/auth/login')}>Save this forecast →</button>
           </div>
         </nav>
 
@@ -247,13 +248,15 @@ export default function ForecastPreviewPage() {
 
             <div className="hf-stat-card hf-stat-green">
               <div className="hf-stat-label">Estimated Age Pension</div>
-              <div className="hf-stat-value green">
-                {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible'}
+              <div className="hf-stat-value green" style={{ fontSize: pensionAnnual === 0 ? '22px' : undefined }}>
+                {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible at 67'}
               </div>
               <div className="hf-stat-sub">
                 {pensionAnnual > 0
                   ? <>{fmtFull(pensionFortnightly)} per fortnight from age 67<br />based on assets &amp; income tests</>
-                  : <>Not entitled from age 67<br />Projected balance exceeds assets or income test threshold</>
+                  : pensionEligibleFromAge
+                  ? <>Projected balance exceeds threshold at 67<br />Eligible from approximately <strong style={{ color: '#7ec896' }}>age {pensionEligibleFromAge}</strong> as your balance reduces</>
+                  : <>Not eligible from age 67<br />Projected balance exceeds the assets or income test threshold</>
                 }
               </div>
             </div>
@@ -285,7 +288,12 @@ export default function ForecastPreviewPage() {
           <div className="hf-summary-section">
             <div className="hf-summary-label">What this forecast shows</div>
             <div className="hf-summary-text">
-              Based on a current super balance of <strong>{fmtFull(superBalance)}</strong> at age <strong>{currentAge}</strong>, with a target retirement age of <strong>{retirementAge}</strong>, Harbour projects a median super balance of approximately <strong>{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</strong> at retirement. From age <strong>67</strong>, an estimated Age Pension of <strong>{pensionAnnual ? fmtFull(Math.round(pensionAnnual / 100) * 100) + ' per year' : '—'}</strong> supplements super drawdowns, calculated under the Centrelink assets and income tests. In the median scenario, funds are projected to last to approximately <strong>{fmtAge(fundsLastP50)}</strong>. The range across all simulated outcomes runs from <strong>{fmtAge(fundsLastP10)}</strong> in the worst case to <strong>{fmtAge(fundsLastP90)}</strong> in the best case.
+              Based on a current super balance of <strong>{fmtFull(superBalance)}</strong> at age <strong>{currentAge}</strong>, with a target retirement age of <strong>{retirementAge}</strong>, Harbour projects a median super balance of approximately <strong>{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</strong> at retirement. From age <strong>67</strong>, {pensionAnnual > 0
+                ? <>an estimated Age Pension of <strong>{fmtFull(Math.round(pensionAnnual / 100) * 100)} per year</strong> supplements super drawdowns, calculated under the Centrelink assets and income tests.</>
+                : pensionEligibleFromAge
+                ? <>the projected balance exceeds the Centrelink assets test threshold, so no Age Pension is payable initially. Based on the median projection, Age Pension entitlement is expected to begin from approximately <strong>age {pensionEligibleFromAge}</strong> as the balance reduces.</>
+                : <>the projected balance exceeds the Centrelink assets and income test thresholds throughout retirement, so no Age Pension is included in this projection.</>
+              }{' '}In the median scenario, funds are projected to last to approximately <strong>{fmtAge(fundsLastP50)}</strong>. The range across all simulated outcomes runs from <strong>{fmtAge(fundsLastP10)}</strong> in the worst case to <strong>{fmtAge(fundsLastP90)}</strong> in the best case.
             </div>
             <div className="hf-summary-rows">
               <div className="hf-summary-row"><div className="hf-summary-row-label">Best case · funds last</div><div className="hf-summary-row-val green">{fmtAge(fundsLastP90)}</div></div>
