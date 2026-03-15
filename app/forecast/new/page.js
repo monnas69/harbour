@@ -69,6 +69,7 @@ export default function ForecastInputPage() {
     spendingFortnightly: '',
     spendingAnnualDisplay: '',
     spendingFortnightlyDisplay: '',
+    disclaimerAccepted: false,
   });
 
   // Validation per step
@@ -225,6 +226,10 @@ export default function ForecastInputPage() {
 
   // ── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
+    if (!form.disclaimerAccepted) {
+      setError('Please read and accept the disclaimer to continue.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -278,11 +283,8 @@ export default function ForecastInputPage() {
     ? parseInt(form.retirementAge) - parseInt(form.currentAge)
     : null;
 
-  // Concessional cap warning: SG + salary sacrifice combined
   const totalConcessional = (sgAnnual(form.salary) || 0) + (parseFloat(form.salarySacrifice) || 0);
   const concessionalWarning = totalConcessional > CONCESSIONAL_CAP;
-
-  // NCC cap warning
   const nccWarning = parseFloat(form.ncc) > NCC_CAP;
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -334,6 +336,7 @@ export default function ForecastInputPage() {
           color: var(--gold);
           letter-spacing: 0.02em;
           margin-bottom: 8px;
+          text-decoration: none;
         }
 
         .sidebar-tagline {
@@ -442,6 +445,43 @@ export default function ForecastInputPage() {
         .review-val { font-weight: 600; color: var(--navy); text-align: right; }
         .review-section-head { background: var(--cream2); padding: 8px 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 
+        .disclaimer-box {
+          background: rgba(13,31,53,0.04);
+          border: 1.5px solid var(--cream2);
+          border-radius: 10px;
+          padding: 20px 24px;
+          margin-bottom: 24px;
+        }
+
+        .disclaimer-box.accepted {
+          border-color: rgba(201,168,76,0.5);
+          background: rgba(201,168,76,0.05);
+        }
+
+        .disclaimer-label {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+          cursor: pointer;
+        }
+
+        .disclaimer-checkbox {
+          margin-top: 2px;
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+          accent-color: var(--gold);
+          cursor: pointer;
+        }
+
+        .disclaimer-text {
+          font-size: 13px;
+          color: var(--muted);
+          line-height: 1.65;
+        }
+
+        .disclaimer-text strong { color: var(--navy); }
+
         .btn-row { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
 
         .btn-back { padding: 14px 24px; border: 2px solid var(--cream2); border-radius: 10px; background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
@@ -449,7 +489,7 @@ export default function ForecastInputPage() {
 
         .btn-next { flex: 1; padding: 16px 24px; background: var(--navy); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.25s; letter-spacing: 0.01em; position: relative; overflow: hidden; }
         .btn-next:hover:not(:disabled) { background: var(--navy2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(13,31,53,0.25); }
-        .btn-next:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-next:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
         .btn-next.gold { background: var(--gold); color: var(--navy); }
         .btn-next.gold:hover:not(:disabled) { background: var(--gold-light); }
 
@@ -466,6 +506,8 @@ export default function ForecastInputPage() {
 
         .section-divider { border: none; border-top: 1px solid var(--cream2); margin: 8px 0 28px; }
 
+        .hint-nudge { margin-top: 10px; font-size: 12px; color: #bbb; }
+
         @media (max-width: 768px) {
           .harbour-wrap { grid-template-columns: 1fr; }
           .sidebar { display: none; }
@@ -479,7 +521,7 @@ export default function ForecastInputPage() {
       <div className="harbour-wrap">
         <aside className="sidebar">
           <a href="/" className="sidebar-logo" style={{ textDecoration: 'none' }}>Harbour</a>
-<div className="sidebar-tagline">Retirement planning</div>
+          <div className="sidebar-tagline">Retirement planning</div>
           <ul className="step-list">
             {STEPS.map((s) => {
               const status = s.id < step ? 'done' : s.id === step ? 'active' : '';
@@ -544,7 +586,6 @@ export default function ForecastInputPage() {
               <h1 className="step-heading">Your super<br />balance & contributions.</h1>
               <p className="step-sub">Enter your current balance and any contributions going into your super each year.</p>
 
-              {/* Current balance */}
               <div className="field-group">
                 <label className="field-label">Current super balance</label>
                 <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $280,000" value={form.superBalanceDisplay} onChange={e => handleSuperBalance(e.target.value)} onBlur={handleSuperBalanceBlur} autoFocus />
@@ -553,7 +594,6 @@ export default function ForecastInputPage() {
 
               <hr className="section-divider" />
 
-              {/* Salary & SG */}
               <div className="field-group">
                 <label className="field-label">Annual salary <span className="optional-tag">(optional)</span></label>
                 <div className="field-explainer">
@@ -571,7 +611,6 @@ export default function ForecastInputPage() {
 
               <hr className="section-divider" />
 
-              {/* Salary sacrifice */}
               <div className="field-group">
                 <label className="field-label">Salary sacrifice <span className="optional-tag">(optional)</span></label>
                 <div className="field-explainer">
@@ -591,7 +630,6 @@ export default function ForecastInputPage() {
 
               <hr className="section-divider" />
 
-              {/* Non-concessional contributions */}
               <div className="field-group">
                 <label className="field-label">Non-concessional contributions <span className="optional-tag">(optional)</span></label>
                 <div className="field-explainer">
@@ -683,7 +721,8 @@ export default function ForecastInputPage() {
           {step === 6 && (
             <div>
               <h1 className="step-heading">Almost there,<br />{form.name}.</h1>
-              <p className="step-sub">Check your details below. Hit "Run forecast" when you're ready.</p>
+              <p className="step-sub">Check your details below, read the disclaimer, then run your forecast.</p>
+
               <div className="review-card">
                 <div className="review-section-head">Personal</div>
                 <div className="review-row"><span className="review-key">Name</span><span className="review-val">{form.name}</span></div>
@@ -704,18 +743,38 @@ export default function ForecastInputPage() {
                 <div className="review-row"><span className="review-key">Modelled to age</span><span className="review-val">90</span></div>
               </div>
 
+              {/* Disclaimer checkbox */}
+              <div className={`disclaimer-box${form.disclaimerAccepted ? ' accepted' : ''}`}>
+                <label className="disclaimer-label">
+                  <input
+                    type="checkbox"
+                    className="disclaimer-checkbox"
+                    checked={form.disclaimerAccepted}
+                    onChange={e => setField('disclaimerAccepted', e.target.checked)}
+                  />
+                  <span className="disclaimer-text">
+                    I understand that this forecast is for <strong>general information purposes only</strong> and does not constitute financial advice. Harbour does not hold an Australian Financial Services Licence (AFSL). Results are projections based on modelled assumptions — they are not guaranteed outcomes and should not be relied upon as a substitute for personalised advice from a licensed financial adviser. Centrelink rules, superannuation laws, and tax rates change regularly. I will verify my personal entitlements with Services Australia or a qualified adviser before making any retirement decisions.
+                  </span>
+                </label>
+              </div>
+
               {error && <div className="error-msg"><span>⚠</span> {error}</div>}
 
               <div className="btn-row">
                 <button className="btn-back" onClick={goBack}>← Back</button>
-                <button className="btn-next gold" onClick={handleSubmit} disabled={loading}>
+                <button
+                  className="btn-next gold"
+                  onClick={handleSubmit}
+                  disabled={loading || !form.disclaimerAccepted}
+                  title={!form.disclaimerAccepted ? 'Please read and accept the disclaimer above' : ''}
+                >
                   {loading ? <><span className="spinner dark" />Running forecast…</> : 'Run my forecast →'}
                 </button>
               </div>
 
-              <p style={{ marginTop: '20px', fontSize: '12px', color: '#999', lineHeight: '1.6' }}>
-                This forecast is for general information purposes only and does not constitute financial advice. Results are projections based on modelled assumptions and are not guaranteed. Always verify your entitlements with Services Australia or a licensed financial adviser.
-              </p>
+              {!form.disclaimerAccepted && (
+                <p className="hint-nudge">Please read and tick the disclaimer above to continue.</p>
+              )}
             </div>
           )}
         </main>
