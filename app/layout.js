@@ -1,4 +1,5 @@
-import { Playfair_Display, DM_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { DM_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -15,7 +16,8 @@ const dmSans = DM_Sans({
 
 export const metadata = {
   title: "Harbour — Retirement Forecasting",
-  description: "Monte Carlo retirement forecasting for Australians. Includes Centrelink Age Pension calculation.",
+  description:
+    "Monte Carlo retirement forecasting for Australians. Includes Centrelink Age Pension calculation.",
 };
 
 export default function RootLayout({ children }) {
@@ -23,6 +25,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${playfair.variable} ${dmSans.variable}`}>
         {children}
+        <Analytics />
       </body>
     </html>
   );
