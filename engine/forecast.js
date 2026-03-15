@@ -105,11 +105,9 @@ function runForecast(inputs, config) {
   const fnPerYear = 26;
 
   // ── Concessional contributions (SG + salary sacrifice), taxed at 15% on entry
-  // The 0.85 multiplier reflects the 15% contributions tax applied to all
-  // concessional (pre-tax) money entering the fund.
-  const sgFortnightly          = (salary * sgRate) / fnPerYear;
+  const sgFortnightly              = (salary * sgRate) / fnPerYear;
   const salarySacrificeFortnightly = salarySacrifice / fnPerYear;
-  const concFortnightlyAfterTax =
+  const concFortnightlyAfterTax    =
     (sgFortnightly + salarySacrificeFortnightly) * 0.85;
 
   // ── Non-concessional contributions (after-tax) — no tax on entry
@@ -152,7 +150,6 @@ function runForecast(inputs, config) {
     // Accumulation phase
     for (let y = 0; y < accYears; y++) {
       const r = accReturns[i][y];
-      // Investment earnings taxed at 15%; contributions already taxed on entry above
       bal = bal + bal * r * 0.85 + totalContribFortnightly * fnPerYear;
       allBalances[y][i] = bal;
     }
@@ -221,16 +218,40 @@ function runForecast(inputs, config) {
   const fundsLastP50 = Math.round(percentile(fundsLastAges, 50));
   const fundsLastP90 = Math.round(percentile(fundsLastAges, 90));
 
+  // ── Pension eligible-from-age scan
+  // When not eligible at 67, scan the p50 curve to find the first age
+  // where the balance drops below the upper assets threshold and pension
+  // becomes payable. Only relevant when pensionAnnualMedian === 0.
+  let pensionEligibleFromAge = null;
+  if (pensionAnnualMedian === 0) {
+    const scanFrom = Math.max(pensionAge, retireAge);
+    for (let checkAge = scanFrom; checkAge <= longevity; checkAge++) {
+      const idx = checkAge - age;
+      if (idx >= 0 && idx < p50Curve.length) {
+        const bal = p50Curve[idx];
+        const pen = calculatePension(
+          bal, pensionMax, assetsLower, assetsUpper, taper,
+          incomeFree, deemingLow, deemingThr, deemingHigh
+        );
+        if (pen > 0) {
+          pensionEligibleFromAge = checkAge;
+          break;
+        }
+      }
+    }
+  }
+
   return {
     ages: agesList,
     p10:  p10Curve,
     p50:  p50Curve,
     p90:  p90Curve,
-    retirement_balance_median: retirementBalanceMedian,
-    pension_annual:            pensionAnnualMedian,
-    funds_last_p10:            fundsLastP10,
-    funds_last_p50:            fundsLastP50,
-    funds_last_p90:            fundsLastP90,
+    retirement_balance_median:  retirementBalanceMedian,
+    pension_annual:             pensionAnnualMedian,
+    pension_eligible_from_age:  pensionEligibleFromAge,
+    funds_last_p10:             fundsLastP10,
+    funds_last_p50:             fundsLastP50,
+    funds_last_p90:             fundsLastP90,
   };
 }
 
