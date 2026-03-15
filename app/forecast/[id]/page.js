@@ -74,20 +74,15 @@ export default function ForecastResultPage() {
     const outputs = forecast.outputs;
     const inputs  = forecast.inputs;
 
-    // Expected output shape from Python engine:
-    // { ages, p10, p50, p90, retirement_balance_median,
-    //   pension_annual, funds_last_p10, funds_last_p50, funds_last_p90 }
     const ages   = outputs.ages   || [];
     const p10    = outputs.p10    || [];
     const p50    = outputs.p50    || [];
     const p90    = outputs.p90    || [];
     const annualSpending = inputs.annual_spending || 0;
 
-    // Spending line — constant in today's dollars (real terms)
     const spendingLine = ages.map(() => annualSpending);
 
     loadChartJs().then((Chart) => {
-      // Destroy previous instance
       if (chartInstance.current) {
         chartInstance.current.destroy();
         chartInstance.current = null;
@@ -102,7 +97,6 @@ export default function ForecastResultPage() {
         data: {
           labels: ages.map((a) => 'Age ' + a),
           datasets: [
-            // Band fill top (p90) → bottom (p10)
             {
               label: '_band_top',
               data: p90,
@@ -120,7 +114,6 @@ export default function ForecastResultPage() {
               fill: false,
               tension: 0.4,
             },
-            // Best case (p90)
             {
               label: 'Best case (90th %ile)',
               data: p90,
@@ -131,7 +124,6 @@ export default function ForecastResultPage() {
               fill: false,
               tension: 0.4,
             },
-            // Median (p50)
             {
               label: 'Median (50th %ile)',
               data: p50,
@@ -142,7 +134,6 @@ export default function ForecastResultPage() {
               fill: false,
               tension: 0.4,
             },
-            // Worst case (p10)
             {
               label: 'Worst case (10th %ile)',
               data: p10,
@@ -153,7 +144,6 @@ export default function ForecastResultPage() {
               fill: false,
               tension: 0.4,
             },
-            // Annual spending line
             {
               label: 'Annual spending target',
               data: spendingLine,
@@ -228,11 +218,10 @@ export default function ForecastResultPage() {
         },
         plugins: [
           {
-            // Vertical pension line + label at age 67
             id: 'pensionLine',
             afterDraw(chart) {
               if (pensionIdx < 0) return;
-              const meta = chart.getDatasetMeta(3); // median dataset
+              const meta = chart.getDatasetMeta(3);
               if (!meta.data[pensionIdx]) return;
               const x = meta.data[pensionIdx].x;
               const { top, bottom } = chart.chartArea;
@@ -306,18 +295,50 @@ export default function ForecastResultPage() {
   const retirementAge   = inputs.retirement_age;
   const annualSpending  = inputs.annual_spending;
 
-  const retirementBalanceMedian = outputs.retirement_balance_median;
-  const pensionAnnual           = outputs.pension_annual;
-  const fundsLastP10            = outputs.funds_last_p10;
-  const fundsLastP50            = outputs.funds_last_p50;
-  const fundsLastP90            = outputs.funds_last_p90;
+  const retirementBalanceMedian   = outputs.retirement_balance_median;
+  const pensionAnnual             = outputs.pension_annual;
+  const pensionEligibleFromAge    = outputs.pension_eligible_from_age || null;
+  const fundsLastP10              = outputs.funds_last_p10;
+  const fundsLastP50              = outputs.funds_last_p50;
+  const fundsLastP90              = outputs.funds_last_p90;
 
-  const yearsToRetirement = retirementAge - currentAge;
+  const yearsToRetirement  = retirementAge - currentAge;
   const pensionFortnightly = pensionAnnual ? Math.round(pensionAnnual / 26) : null;
 
   const createdAt = new Date(forecast.created_at).toLocaleDateString('en-AU', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
+
+  // ── Pension card content helper ───────────────────────────────────────────
+  const pensionCardValue = () => {
+    if (pensionAnnual > 0) return fmtFull(Math.round(pensionAnnual / 100) * 100);
+    return 'Not eligible at 67';
+  };
+
+  const pensionCardSub = () => {
+    if (pensionAnnual > 0) {
+      return (
+        <>
+          Estimated per year from age 67<br />
+          {`${fmtFull(pensionFortnightly)} per fortnight — based on assets & income tests`}
+        </>
+      );
+    }
+    if (pensionEligibleFromAge) {
+      return (
+        <>
+          Projected balance exceeds threshold at 67<br />
+          Eligible from approximately <strong style={{ color: '#7ec896' }}>age {pensionEligibleFromAge}</strong> as your balance reduces
+        </>
+      );
+    }
+    return (
+      <>
+        Not eligible from age 67<br />
+        Projected balance exceeds the assets or income test threshold
+      </>
+    );
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -386,16 +407,11 @@ export default function ForecastResultPage() {
 
             <div className="hf-stat-card hf-stat-green">
               <div className="hf-stat-label">Age Pension entitlement</div>
-              <div className="hf-stat-value green">
-                {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : pensionAnnual === 0 ? 'Not eligible' : '—'}
+              <div className="hf-stat-value green" style={{ fontSize: pensionAnnual === 0 ? '22px' : undefined }}>
+                {pensionCardValue()}
               </div>
               <div className="hf-stat-sub">
-                {pensionAnnual > 0
-                  ? <>Estimated per year from age 67<br />{`${fmtFull(pensionFortnightly)} per fortnight — based on assets & income tests`}</>
-                  : pensionAnnual === 0
-                  ? <>Not eligible from age 67<br />Projected balance exceeds the assets or income test threshold</>
-                  : <>Estimated per year from age 67<br />based on assets &amp; income tests</>
-                }
+                {pensionCardSub()}
               </div>
             </div>
 
@@ -448,7 +464,12 @@ export default function ForecastResultPage() {
           <div className="hf-summary-section">
             <div className="hf-summary-label">What this forecast shows</div>
             <div className="hf-summary-text">
-              Based on a current super balance of <strong>{fmtFull(superBalance)}</strong> at age <strong>{currentAge}</strong>, with a target retirement age of <strong>{retirementAge}</strong>, Harbour projects a median super balance of approximately <strong>{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</strong> at retirement. From age <strong>67</strong>, an estimated Age Pension of <strong>{pensionAnnual ? fmtFull(Math.round(pensionAnnual / 100) * 100) + ' per year' : '—'}</strong> supplements super drawdowns, calculated under the Centrelink assets and income tests. In the median scenario, funds are projected to last to approximately <strong>{fmtAge(fundsLastP50)}</strong>. The range across all simulated outcomes runs from <strong>{fmtAge(fundsLastP10)}</strong> in the worst case to <strong>{fmtAge(fundsLastP90)}</strong> in the best case.
+              Based on a current super balance of <strong>{fmtFull(superBalance)}</strong> at age <strong>{currentAge}</strong>, with a target retirement age of <strong>{retirementAge}</strong>, Harbour projects a median super balance of approximately <strong>{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</strong> at retirement. From age <strong>67</strong>, {pensionAnnual > 0
+                ? <>an estimated Age Pension of <strong>{fmtFull(Math.round(pensionAnnual / 100) * 100)} per year</strong> supplements super drawdowns, calculated under the Centrelink assets and income tests.</>
+                : pensionEligibleFromAge
+                ? <>the projected balance exceeds the Centrelink assets test threshold, so no Age Pension is payable initially. Based on the median projection, Age Pension entitlement is expected to begin from approximately <strong>age {pensionEligibleFromAge}</strong> as the balance reduces.</>
+                : <>the projected balance exceeds the Centrelink assets and income test thresholds throughout retirement, so no Age Pension is included in this projection.</>
+              }{' '}In the median scenario, funds are projected to last to approximately <strong>{fmtAge(fundsLastP50)}</strong>. The range across all simulated outcomes runs from <strong>{fmtAge(fundsLastP10)}</strong> in the worst case to <strong>{fmtAge(fundsLastP90)}</strong> in the best case.
             </div>
 
             <div className="hf-summary-rows">
@@ -501,7 +522,6 @@ const baseStyles = `
     z-index: 0;
   }
 
-  /* Nav */
   .hf-nav {
     display: flex; align-items: center; justify-content: space-between;
     padding: 18px 40px;
@@ -522,14 +542,8 @@ const baseStyles = `
     color: #f5f0e8; letter-spacing: 0.04em;
   }
 
-  .hf-nav-right {
-    display: flex; align-items: center; gap: 14px;
-  }
-
-  .hf-nav-user {
-    font-size: 13px; color: #8a9bb0;
-  }
-
+  .hf-nav-right { display: flex; align-items: center; gap: 14px; }
+  .hf-nav-user { font-size: 13px; color: #8a9bb0; }
   .hf-nav-user span { color: #f5f0e8; font-weight: 500; }
 
   .hf-btn-outline {
@@ -543,12 +557,8 @@ const baseStyles = `
     transition: all 0.2s; text-decoration: none;
   }
 
-  .hf-btn-outline:hover {
-    background: rgba(201,168,76,0.1);
-    border-color: #c9a84c;
-  }
+  .hf-btn-outline:hover { background: rgba(201,168,76,0.1); border-color: #c9a84c; }
 
-  /* Page */
   .hf-page {
     max-width: 1000px;
     margin: 0 auto;
@@ -556,7 +566,6 @@ const baseStyles = `
     position: relative; z-index: 1;
   }
 
-  /* Header */
   .hf-header {
     display: flex; justify-content: space-between; align-items: flex-start;
     margin-bottom: 32px; flex-wrap: wrap; gap: 16px;
@@ -570,11 +579,7 @@ const baseStyles = `
 
   .hf-title em { color: #e8cc88; font-style: italic; }
 
-  .hf-meta {
-    font-size: 13px; color: #8a9bb0;
-    margin-top: 6px; font-weight: 300;
-  }
-
+  .hf-meta { font-size: 13px; color: #8a9bb0; margin-top: 6px; font-weight: 300; }
   .hf-meta span { color: #f5f0e8; }
 
   .hf-recalc-btn {
@@ -589,7 +594,6 @@ const baseStyles = `
 
   .hf-recalc-btn:hover { border-color: #c9a84c; color: #c9a84c; }
 
-  /* Stat cards */
   .hf-stat-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -638,12 +642,8 @@ const baseStyles = `
   .hf-stat-value.green { color: #7ec896; }
   .hf-stat-value.blue { color: #7ab8f0; }
 
-  .hf-stat-sub {
-    font-size: 12px; color: #8a9bb0;
-    font-weight: 300; line-height: 1.5;
-  }
+  .hf-stat-sub { font-size: 12px; color: #8a9bb0; font-weight: 300; line-height: 1.5; }
 
-  /* Chart */
   .hf-chart-section {
     background: rgba(20,41,68,0.7);
     border: 1px solid rgba(201,168,76,0.15);
@@ -660,36 +660,18 @@ const baseStyles = `
 
   .hf-chart-title {
     font-family: 'Playfair Display', serif;
-    font-size: 18px; font-weight: 600;
-    color: #f5f0e8;
+    font-size: 18px; font-weight: 600; color: #f5f0e8;
   }
 
-  .hf-chart-legend {
-    display: flex; gap: 20px; flex-wrap: wrap;
-  }
+  .hf-chart-legend { display: flex; gap: 20px; flex-wrap: wrap; }
 
-  .hf-legend-item {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 12px; color: #8a9bb0;
-  }
+  .hf-legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8a9bb0; }
+  .hf-legend-line { width: 24px; display: inline-block; }
 
-  .hf-legend-line {
-    width: 24px;
-    display: inline-block;
-  }
+  .hf-chart-wrap { position: relative; height: 320px; }
 
-  .hf-chart-wrap {
-    position: relative;
-    height: 320px;
-  }
+  .hf-chart-note { font-size: 11px; color: #8a9bb0; margin-top: 14px; text-align: right; font-style: italic; }
 
-  .hf-chart-note {
-    font-size: 11px; color: #8a9bb0;
-    margin-top: 14px; text-align: right;
-    font-style: italic;
-  }
-
-  /* Summary */
   .hf-summary-section {
     background: rgba(20,41,68,0.5);
     border: 1px solid rgba(201,168,76,0.12);
@@ -705,11 +687,7 @@ const baseStyles = `
     font-weight: 500; margin-bottom: 14px;
   }
 
-  .hf-summary-text {
-    font-size: 16px; line-height: 1.75;
-    color: #f5f0e8; font-weight: 300;
-  }
-
+  .hf-summary-text { font-size: 16px; line-height: 1.75; color: #f5f0e8; font-weight: 300; }
   .hf-summary-text strong { color: #f5f0e8; font-weight: 500; }
 
   .hf-summary-rows {
@@ -726,22 +704,13 @@ const baseStyles = `
     padding: 14px 16px;
   }
 
-  .hf-summary-row-label {
-    font-size: 11px; color: #8a9bb0;
-    text-transform: uppercase; letter-spacing: 0.1em;
-    margin-bottom: 6px;
-  }
+  .hf-summary-row-label { font-size: 11px; color: #8a9bb0; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
 
-  .hf-summary-row-val {
-    font-family: 'Playfair Display', serif;
-    font-size: 17px; font-weight: 600;
-  }
-
+  .hf-summary-row-val { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; }
   .hf-summary-row-val.green { color: #7ec896; }
   .hf-summary-row-val.gold  { color: #c9a84c; }
   .hf-summary-row-val.red   { color: #e08878; }
 
-  /* Disclaimer */
   .hf-disclaimer {
     margin-top: 32px;
     font-size: 11px; color: rgba(138,155,176,0.5);
@@ -749,7 +718,6 @@ const baseStyles = `
     max-width: 700px; margin-left: auto; margin-right: auto;
   }
 
-  /* Spinner */
   .spinner {
     display: inline-block;
     width: 24px; height: 24px;
@@ -761,7 +729,6 @@ const baseStyles = `
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Responsive */
   @media (max-width: 680px) {
     .hf-nav { padding: 16px 20px; }
     .hf-nav-user { display: none; }
