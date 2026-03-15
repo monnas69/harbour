@@ -91,6 +91,7 @@ export default function ForecastInputPage() {
       const retAge = parseInt(form.retirementAge);
       const curAge = parseInt(form.currentAge);
       if (!form.retirementAge || isNaN(retAge)) return 'Please enter your target retirement age.';
+      if (retAge < 60) return 'Retirement age must be at least 60. Super cannot be accessed before preservation age.';
       if (retAge <= curAge) return `Retirement age must be greater than your current age (${curAge}).`;
       if (retAge > 75) return 'Retirement age cannot exceed 75 for now.';
     }
@@ -661,8 +662,8 @@ export default function ForecastInputPage() {
               <p className="step-sub">The Age Pension becomes available at 67 regardless of when you stop working.{form.currentAge && <> You are currently {form.currentAge}.</>}</p>
               <div className="field-group">
                 <label className="field-label">Target retirement age</label>
-                <input className="field-input" type="number" inputMode="numeric" placeholder="e.g. 65" min={parseInt(form.currentAge) + 1 || 26} max={75} value={form.retirementAge} onChange={e => setField('retirementAge', e.target.value)} autoFocus />
-                <p className="field-hint">Must be older than {form.currentAge || 'your current age'} and no later than 75.</p>
+                <input className="field-input" type="number" inputMode="numeric" placeholder="e.g. 65" min={60} max={75} value={form.retirementAge} onChange={e => setField('retirementAge', e.target.value)} autoFocus />
+                <p className="field-hint">Must be between 60 and 75. Super cannot be accessed before preservation age (60).</p>
               </div>
               {yearsToRetirement !== null && yearsToRetirement > 0 && (
                 <div className="sg-callout">
