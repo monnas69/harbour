@@ -111,10 +111,10 @@
 
 | Item | Notes | Status |
 |------|-------|--------|
-| **Stripe integration** | *Subscription billing — annual billing model preferred at ~$79/yr (Harbour Plus). Webhook sets is_plus = true on profiles table* | → To do |
+| **Stripe integration** | *Subscription billing — annual billing model preferred at ~$55/yr (Harbour Plus). Webhook sets is_plus = true on profiles table* | → To do |
 | **Paid tier gate — forecast limit** | *Free accounts capped at 3 saved forecasts. API returns FORECAST_LIMIT_REACHED (403) when exceeded. Plus users bypass limit via is_plus flag on profiles table* | ✓ Done |
 | **User tier management** | *profiles table live in Supabase — id, is_plus (bool), stripe_customer_id (nullable), created_at. RLS policies set. Auto-created on signup via trigger. is_plus read in /api/forecast and /profile* | ✓ Done |
-| **Pricing page** | *Live at /upgrade — Free vs Plus cards, $79/yr, feature comparison, FAQ. Stripe button shows "Coming soon" until payment integration complete. Already-Plus users see active state* | ✓ Done |
+| **Pricing page** | *Live at /upgrade — Free vs Plus cards, $55/yr, feature comparison, FAQ. Stripe button shows "Coming soon" until payment integration complete. Already-Plus users see active state* | ✓ Done |
 | **Partner / couples details** | *Additional input step — partner age, super, salary* | → To do |
 | **Combined Age Pension calc (couples)** | *Assets test and deeming for couple — combined thresholds* | → To do |
 | **PDF export** | *Paid feature — forecast summary as downloadable PDF* | → To do |

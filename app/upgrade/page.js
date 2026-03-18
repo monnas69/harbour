@@ -134,7 +134,7 @@ export default function UpgradePage() {
                 <div className="up-card-plan">
                   <span className="up-plus-star">✦</span> Plus
                 </div>
-                <div className="up-card-price">$79</div>
+                <div className="up-card-price">$55</div>
                 <div className="up-card-period">per year</div>
               </div>
               <ul className="up-features">
