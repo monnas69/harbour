@@ -311,11 +311,19 @@ export default function ForecastPreviewPage() {
                 <div className="hf-stat-value gold">{fmt(superBalance)}</div>
                 <div className="hf-stat-sub">Today · age {currentAge}<br />starting point for this forecast</div>
               </div>
-              <div className="hf-stat-card hf-stat-blue">
-                <div className="hf-stat-label">Projected super at retirement</div>
-                <div className="hf-stat-value blue">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
-                <div className="hf-stat-sub">Median estimate at age {retirementAge} · in today's dollars<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
-              </div>
+              {yearsToRetirement > 0 ? (
+                <div className="hf-stat-card hf-stat-blue">
+                  <div className="hf-stat-label">Projected super at retirement</div>
+                  <div className="hf-stat-value blue">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
+                  <div className="hf-stat-sub">Median estimate at age {retirementAge} · in today's dollars<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
+                </div>
+              ) : (
+                <div className="hf-stat-card hf-stat-blue">
+                  <div className="hf-stat-label">Funds projected to last until</div>
+                  <div className="hf-stat-value blue">{fmtAge(fundsLastP50)}</div>
+                  <div className="hf-stat-sub">Median scenario at balanced spending<br />Best case {fmtAge(fundsLastP90)} · Worst case {fmtAge(fundsLastP10)}</div>
+                </div>
+              )}
               <div className="hf-stat-card hf-stat-green">
                 <div className="hf-stat-label">Estimated Age Pension</div>
                 <div className="hf-stat-value green" style={{ fontSize: pensionAnnual === 0 ? '22px' : undefined }}>
