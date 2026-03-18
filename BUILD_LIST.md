@@ -29,7 +29,7 @@
 | **Session management** | *JWT tokens, persistent login, sign out — working* | ✓ Done |
 | **Password reset flow** | *Email reset link via Resend — fully working end to end* | ✓ Done |
 | **Email confirmation on sign-up** | *ON in Supabase — callback route verifies token_hash via verifyOtp() and redirects to /dashboard* | ✓ Done |
-| **User profile page** | *Live at /profile — display name, email change, password change* | ✓ Done |
+| **User profile page** | *Live at /profile — display name, email change, password change, plan badge (Free / Harbour Plus)* | ✓ Done |
 | **Delete account** | *Fully wired — deletes user + all forecasts via service role API, redirects to landing* | ✓ Done |
 
 ### Forecast calculation engine
@@ -111,10 +111,10 @@
 
 | Item | Notes | Status |
 |------|-------|--------|
-| **Stripe integration** | *Subscription billing — annual billing model preferred at ~$79/yr (Harbour Plus)* | → To do |
-| **Paid tier gate** | *Free: 3 saved forecasts. Plus: unlimited, partner, PDF export* | → To do |
-| **User tier management** | *profiles table with stripe_customer_id + is_plus flag — build as part of Stripe integration* | → To do |
-| **Pricing page** | *Not yet designed* | → To do |
+| **Stripe integration** | *Subscription billing — annual billing model preferred at ~$79/yr (Harbour Plus). Webhook sets is_plus = true on profiles table* | → To do |
+| **Paid tier gate — forecast limit** | *Free accounts capped at 3 saved forecasts. API returns FORECAST_LIMIT_REACHED (403) when exceeded. Plus users bypass limit via is_plus flag on profiles table* | ✓ Done |
+| **User tier management** | *profiles table live in Supabase — id, is_plus (bool), stripe_customer_id (nullable), created_at. RLS policies set. Auto-created on signup via trigger. is_plus read in /api/forecast and /profile* | ✓ Done |
+| **Pricing page** | *Live at /upgrade — Free vs Plus cards, $79/yr, feature comparison, FAQ. Stripe button shows "Coming soon" until payment integration complete. Already-Plus users see active state* | ✓ Done |
 | **Partner / couples details** | *Additional input step — partner age, super, salary* | → To do |
 | **Combined Age Pension calc (couples)** | *Assets test and deeming for couple — combined thresholds* | → To do |
 | **PDF export** | *Paid feature — forecast summary as downloadable PDF* | → To do |
@@ -176,7 +176,10 @@
 - Couples admin config rows and ASFA couples standards should be added to the admin dashboard at the same time as the partner feature is built — not before.
 - All config updates are made in the admin dashboard only — never edit code or database directly.
 - Email confirmation is ON in Supabase. Confirmation now redirects to /dashboard via token_hash verification in /auth/callback.
-- Profile page at /profile allows users to update display name, email, and password. Display name stored in Supabase user_metadata.display_name and used in dashboard greeting.
+- Profile page at /profile allows users to update display name, email, and password. Display name stored in Supabase user_metadata.display_name and used in dashboard greeting. Plan status (Free / Harbour Plus) shown via is_plus field from profiles table.
+- profiles table: id (uuid, FK to auth.users), is_plus (bool, default false, not null), stripe_customer_id (text, nullable), created_at (timestamptz). RLS: users can read/update own row only. Auto-created on signup via Supabase trigger.
+- Forecast limit: free users capped at 3 saved forecasts. /api/forecast checks profiles.is_plus — if false, counts existing forecasts and returns 403 FORECAST_LIMIT_REACHED at ≥3. Plus users bypass the check entirely.
+- /upgrade page at /upgrade — pricing page with Free vs Plus comparison. Stripe buy button disabled ("Coming soon") until Stripe integration is complete. Email hello@harbourapp.com.au shown for early Plus access.
 - Delete account is fully wired — service role key deletes user from Supabase Auth, cascade delete removes all forecasts automatically.
 
 ---
