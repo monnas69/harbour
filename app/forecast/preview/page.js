@@ -4,6 +4,21 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Deflate nominal future dollars to today's dollars (ASIC standard)
+function deflateCurve(nominalCurve, ages, currentAge, inflation = 0.025) {
+  return nominalCurve.map((val, i) => {
+    const years = (ages[i] || (currentAge + i)) - currentAge;
+    if (years <= 0 || val === 0) return val;
+    return Math.round(val / Math.pow(1 + inflation, years));
+  });
+}
+
+function deflateScalar(nominalVal, years, inflation = 0.025) {
+  if (years <= 0 || !nominalVal) return nominalVal;
+  return Math.round(nominalVal / Math.pow(1 + inflation, years));
+}
+
 const fmt = (val) => {
   if (val === null || val === undefined) return '—';
   if (val >= 1_000_000) return '$' + (val / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + 'm';
@@ -60,6 +75,15 @@ export default function ForecastPreviewPage() {
     const p10  = outputs.p10  || [];
     const p50  = outputs.p50  || [];
     const p90  = outputs.p90  || [];
+    const inflation = 0.025;
+    const currentAge = inputs.current_age;
+
+    // Deflate curves to today's dollars
+    const p10Real = deflateCurve(p10, ages, currentAge, inflation);
+    const p50Real = deflateCurve(p50, ages, currentAge, inflation);
+    const p90Real = deflateCurve(p90, ages, currentAge, inflation);
+
+    // Spending already in today's dollars
     const spendingLine = ages.map(() => inputs.annual_spending || 0);
 
     loadChartJs().then((Chart) => {
@@ -74,12 +98,12 @@ export default function ForecastPreviewPage() {
         data: {
           labels: ages.map((a) => 'Age ' + a),
           datasets: [
-            { label: '_band_top', data: p90, borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(201,168,76,0.07)', tension: 0.4 },
-            { label: '_band_bot', data: p10, borderWidth: 0, pointRadius: 0, fill: false, tension: 0.4 },
-            { label: 'Best case (90th %ile)', data: p90, borderColor: 'rgba(91,158,110,0.75)', borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, fill: false, tension: 0.4 },
-            { label: 'Median (50th %ile)', data: p50, borderColor: '#c9a84c', borderWidth: 2.5, pointRadius: ages.map((a) => (a === pensionAge ? 5 : 0)), pointBackgroundColor: '#c9a84c', fill: false, tension: 0.4 },
-            { label: 'Worst case (10th %ile)', data: p10, borderColor: 'rgba(192,97,74,0.75)', borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, fill: false, tension: 0.4 },
-            { label: 'Annual spending target', data: spendingLine, borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderDash: [3, 6], pointRadius: 0, fill: false, tension: 0 },
+            { label: '_band_top', data: p90Real, borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(201,168,76,0.07)', tension: 0.4 },
+            { label: '_band_bot', data: p10Real, borderWidth: 0, pointRadius: 0, fill: false, tension: 0.4 },
+            { label: 'Best case (90th %ile)', data: p90Real, borderColor: 'rgba(91,158,110,0.75)', borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, fill: false, tension: 0.4 },
+            { label: 'Median (50th %ile)', data: p50Real, borderColor: '#c9a84c', borderWidth: 2.5, pointRadius: ages.map((a) => (a === pensionAge ? 5 : 0)), pointBackgroundColor: '#c9a84c', fill: false, tension: 0.4 },
+            { label: 'Worst case (10th %ile)', data: p10Real, borderColor: 'rgba(192,97,74,0.75)', borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, fill: false, tension: 0.4 },
+            { label: 'Spending target (today\'s $)', data: spendingLine, borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderDash: [3, 6], pointRadius: 0, fill: false, tension: 0 },
           ],
         },
         options: {
@@ -173,15 +197,20 @@ export default function ForecastPreviewPage() {
   const superBalance   = inputs.super_balance;
   const retirementAge  = inputs.retirement_age;
   const annualSpending = inputs.annual_spending;
+  const inflation      = 0.025;
 
-  const retirementBalanceMedian = outputs.retirement_balance_median;
-  const pensionAnnual           = outputs.pension_annual;
-  const pensionEligibleFromAge  = outputs.pension_eligible_from_age || null;
-  const fundsLastP10            = outputs.funds_last_p10;
-  const fundsLastP50            = outputs.funds_last_p50;
-  const fundsLastP90            = outputs.funds_last_p90;
+  const yearsToRetirement = retirementAge - currentAge;
 
-  const yearsToRetirement  = retirementAge - currentAge;
+  // Deflate retirement balance to today's dollars
+  const retirementBalanceNominal = outputs.retirement_balance_median;
+  const retirementBalanceMedian  = deflateScalar(retirementBalanceNominal, yearsToRetirement, inflation);
+
+  const pensionAnnual          = outputs.pension_annual;
+  const pensionEligibleFromAge = outputs.pension_eligible_from_age || null;
+  const fundsLastP10           = outputs.funds_last_p10;
+  const fundsLastP50           = outputs.funds_last_p50;
+  const fundsLastP90           = outputs.funds_last_p90;
+
   const pensionFortnightly = pensionAnnual ? Math.round(pensionAnnual / 26) : null;
 
   return (
@@ -237,13 +266,18 @@ export default function ForecastPreviewPage() {
             <button className="hf-recalc-btn" onClick={() => router.push('/forecast/new')}>✎ Adjust inputs</button>
           </div>
 
+          {/* Today's dollars notice */}
+          <div className="hf-real-dollars-notice">
+            All projected balances are shown in <strong>today's dollars</strong> — adjusted for 2.5% p.a. inflation so you can directly compare them to what money buys now.
+          </div>
+
           {/* Stat cards */}
           <div className="hf-stat-grid">
 
             <div className="hf-stat-card hf-stat-gold">
               <div className="hf-stat-label">Projected super at retirement</div>
               <div className="hf-stat-value gold">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
-              <div className="hf-stat-sub">Median estimate at age {retirementAge}<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
+              <div className="hf-stat-sub">Median estimate at age {retirementAge} · in today's dollars<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
             </div>
 
             <div className="hf-stat-card hf-stat-green">
@@ -281,14 +315,14 @@ export default function ForecastPreviewPage() {
               </div>
             </div>
             <div className="hf-chart-wrap"><canvas ref={chartRef} /></div>
-            <div className="hf-chart-note">Based on 1,000 simulated scenarios · Assumes single homeowner · 2.5% inflation · Returns modelled net of fees</div>
+            <div className="hf-chart-note">All values in today's dollars (2.5% inflation adjustment) · 1,000 simulated scenarios · Single homeowner · Returns net of 0.67% p.a. fees</div>
           </div>
 
           {/* Summary */}
           <div className="hf-summary-section">
             <div className="hf-summary-label">What this forecast shows</div>
             <div className="hf-summary-text">
-              Based on a current super balance of <strong>{fmtFull(superBalance)}</strong> at age <strong>{currentAge}</strong>, with a target retirement age of <strong>{retirementAge}</strong>, Harbour projects a median super balance of approximately <strong>{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</strong> at retirement. From age <strong>67</strong>, {pensionAnnual > 0
+              Based on a current super balance of <strong>{fmtFull(superBalance)}</strong> at age <strong>{currentAge}</strong>, with a target retirement age of <strong>{retirementAge}</strong>, Harbour projects a median super balance of approximately <strong>{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'} in today's dollars</strong> at retirement. From age <strong>67</strong>, {pensionAnnual > 0
                 ? <>an estimated Age Pension of <strong>{fmtFull(Math.round(pensionAnnual / 100) * 100)} per year</strong> supplements super drawdowns, calculated under the Centrelink assets and income tests.</>
                 : pensionEligibleFromAge
                 ? <>the projected balance exceeds the Centrelink assets test threshold, so no Age Pension is payable initially. Based on the median projection, Age Pension entitlement is expected to begin from approximately <strong>age {pensionEligibleFromAge}</strong> as the balance reduces.</>
@@ -342,6 +376,9 @@ const baseStyles = `
   .hf-btn-gold:hover { background: #e8cc88; }
 
   .hf-save-banner { background: rgba(20,41,68,0.9); border-bottom: 1px solid rgba(201,168,76,0.2); padding: 16px 40px; position: relative; z-index: 10; }
+
+  .hf-real-dollars-notice { background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.2); border-radius: 6px; padding: 10px 16px; margin-bottom: 24px; font-size: 13px; color: #8a9bb0; line-height: 1.5; }
+  .hf-real-dollars-notice strong { color: #c9a84c; }
   .hf-save-banner-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
   .hf-save-banner-title { font-size: 15px; font-weight: 500; color: #f5f0e8; margin-bottom: 3px; }
   .hf-save-banner-sub { font-size: 13px; color: #8a9bb0; font-weight: 300; }
