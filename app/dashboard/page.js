@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const [user, setUser]           = useState(null);
   const [forecasts, setForecasts] = useState([]);
   const [latestConfig, setLatestConfig] = useState(null);
+  const [isPlus, setIsPlus]       = useState(false);
   const [loading, setLoading]     = useState(true);
   const [deleting, setDeleting]   = useState(null); // forecast id being deleted
 
@@ -60,6 +61,23 @@ export default function DashboardPage() {
         setLatestConfig(configRows[0].last_updated);
       }
 
+      // Load or create profile (for Plus tier status)
+      let { data: profile } = await supabase
+        .from('profiles')
+        .select('is_plus')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!profile) {
+        const { data: created } = await supabase
+          .from('profiles')
+          .insert({ id: session.user.id, is_plus: false })
+          .select('is_plus')
+          .single();
+        profile = created;
+      }
+
+      setIsPlus(profile?.is_plus === true);
       setLoading(false);
     }
     load();
@@ -162,25 +180,29 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Upgrade banner — Phase 3, shown to all free users for now */}
-          <div className="hd-upgrade-banner">
-            <div className="hd-upgrade-left">
-              <div className="hd-upgrade-icon">✦</div>
-              <div>
-                <div className="hd-upgrade-label">Free plan</div>
-                <div className="hd-upgrade-headline">Add your partner and see the full picture</div>
-                <div className="hd-upgrade-desc">Harbour Plus includes partner details, combined Age Pension calculations, and PDF export.</div>
+          {/* Upgrade banner — shown to free users only */}
+          {!isPlus && (
+            <div className="hd-upgrade-banner">
+              <div className="hd-upgrade-left">
+                <div className="hd-upgrade-icon">✦</div>
+                <div>
+                  <div className="hd-upgrade-label">Free plan</div>
+                  <div className="hd-upgrade-headline">Add your partner and see the full picture</div>
+                  <div className="hd-upgrade-desc">Harbour Plus includes unlimited forecasts, partner details, combined Age Pension calculations, and PDF export.</div>
+                </div>
               </div>
+              <button className="hd-btn-gold" onClick={() => router.push('/upgrade')}>
+                See Plus →
+              </button>
             </div>
-            <button className="hd-btn-gold" style={{ opacity: 0.5, cursor: 'not-allowed' }} title="Coming soon">
-              Upgrade to Plus
-            </button>
-          </div>
+          )}
 
           {/* Forecasts section */}
           <div className="hd-section-header">
             <div className="hd-section-title">Saved forecasts</div>
-            <span className="hd-section-count">{forecasts.length} saved</span>
+            <span className="hd-section-count">
+              {isPlus ? `${forecasts.length} saved` : `${forecasts.length} of 3 saved`}
+            </span>
           </div>
 
           <div className="hd-forecast-grid">
@@ -306,19 +328,30 @@ export default function DashboardPage() {
             <div className="hd-account-section-title">Plan</div>
             <div className="hd-account-row">
               <span className="hd-account-label">Current plan</span>
-              <span className="hd-plan-badge">✦ Free</span>
+              {isPlus
+                ? <span className="hd-plan-badge plus">✦ Harbour Plus</span>
+                : <span className="hd-plan-badge">✦ Free</span>
+              }
             </div>
             <div className="hd-account-row">
               <span className="hd-account-label">Forecasts saved</span>
-              <span className="hd-account-value">{forecasts.length}</span>
+              <span className="hd-account-value">
+                {isPlus ? `${forecasts.length} (unlimited)` : `${forecasts.length} of 3`}
+              </span>
             </div>
             <div className="hd-account-row">
               <span className="hd-account-label">Partner details</span>
-              <span className="hd-account-value" style={{ color: '#8a9bb0' }}>Plus plan only</span>
+              {isPlus
+                ? <span className="hd-account-value" style={{ color: '#7ec896' }}>Included</span>
+                : <a href="/upgrade" className="hd-account-action">Upgrade to Plus →</a>
+              }
             </div>
             <div className="hd-account-row">
               <span className="hd-account-label">PDF export</span>
-              <span className="hd-account-value" style={{ color: '#8a9bb0' }}>Plus plan only</span>
+              {isPlus
+                ? <span className="hd-account-value" style={{ color: '#7ec896' }}>Included</span>
+                : <a href="/upgrade" className="hd-account-action">Upgrade to Plus →</a>
+              }
             </div>
           </div>
 
@@ -700,6 +733,12 @@ const styles = `
     color: #c9a84c; font-size: 12px;
     padding: 4px 10px; border-radius: 20px;
     font-weight: 500;
+  }
+
+  .hd-plan-badge.plus {
+    background: rgba(201,168,76,0.18);
+    border-color: rgba(201,168,76,0.5);
+    color: #e8cc88;
   }
 
   /* Footer */
