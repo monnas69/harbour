@@ -1,7 +1,19 @@
 // engine/forecast.js
-// JavaScript port of engine/forecast.py — no external dependencies required.
+// Harbour Monte Carlo retirement engine — JavaScript, no external dependencies.
+//
+// ── Enhancements over v1 ──────────────────────────────────────────────────────
+//   v2 — Mid-year contribution compounding (fortnightly contributions earn
+//         half-year average growth rather than zero)
+//   v2 — ATO minimum drawdown rates enforced by age band (4–11%)
+//   v2 — Transfer Balance Cap enforced at retirement — excess above cap stays
+//         in accumulation phase and is taxed at 15% on earnings
+//   v2 — Pension eligible-from-age: when pension = 0 at 67, scans p50 curve
+//         to find first age pension becomes payable as balance reduces
+//   v3 — Super fund fees applied as annual drag on investment returns in both
+//         accumulation and retirement phases (config: fee_rate, default 0.67%)
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ── Seeded PRNG (mulberry32)
+// ── Seeded PRNG (mulberry32) ──────────────────────────────────────────────────
 // Produces deterministic results for the same inputs (seed = 42)
 function mulberry32(seed) {
   return function () {
@@ -31,7 +43,23 @@ function percentile(arr, p) {
   return sorted[lo] + (idx - lo) * (sorted[hi] - sorted[lo]);
 }
 
-// ── Centrelink Age Pension calculation
+// ── ATO minimum drawdown rates by age ─────────────────────────────────────────
+// Source: ato.gov.au — legislated minimum annual pension payments
+// Applied in retirement phase — if target spending is below this, the higher
+// amount is withdrawn (reduces balance faster, more realistic for large balances)
+function minDrawdownRate(age) {
+  if (age < 65) return 0.04; // 4%
+  if (age < 75) return 0.05; // 5%
+  if (age < 80) return 0.06; // 6%
+  if (age < 85) return 0.07; // 7%
+  if (age < 90) return 0.09; // 9%
+  return 0.11;               // 11% — age 90+
+}
+
+// ── Centrelink Age Pension calculation ────────────────────────────────────────
+// Applies both the assets test and income test (deeming), returns the lower
+// of the two (Centrelink pays whichever test gives the lower entitlement).
+// Returns fortnightly pension amount.
 function calculatePension(
   bal,
   pensionMax,
@@ -43,19 +71,23 @@ function calculatePension(
   deemingThr,
   deemingHigh
 ) {
+  if (bal <= 0) return pensionMax; // balance exhausted — full pension
   if (bal >= assetsUpper) return 0;
+
   const fnPerYear = 26;
 
-  // Assets test
-  const assetsReduction = Math.max(0, Math.floor((bal - assetsLower) / 1000)) * taper;
+  // Assets test: pension reduces $3/fn per $1,000 above lower threshold
+  const assetsReduction =
+    Math.max(0, Math.floor((bal - assetsLower) / 1000)) * taper;
   const pensionAssets = Math.max(0, pensionMax - assetsReduction);
 
-  // Income test
+  // Income test: deem assets to earn income, reduce pension on excess
   let deemedAnnual;
   if (bal <= deemingThr) {
     deemedAnnual = bal * deemingLow;
   } else {
-    deemedAnnual = deemingThr * deemingLow + (bal - deemingThr) * deemingHigh;
+    deemedAnnual =
+      deemingThr * deemingLow + (bal - deemingThr) * deemingHigh;
   }
   const deemedFn = deemedAnnual / fnPerYear;
   const incomeReduction = Math.max(0, (deemedFn - incomeFree) * 0.5);
@@ -65,26 +97,33 @@ function calculatePension(
   return Math.min(pensionAssets, pensionIncome);
 }
 
-// ── Main forecast function
+// ── Main forecast function ────────────────────────────────────────────────────
 function runForecast(inputs, config) {
-  // ── Inputs
-  const age            = inputs.current_age;
-  const superBal       = inputs.super_balance;
-  const salary         = inputs.salary || 0;
-  const salarySacrifice = inputs.salary_sacrifice || 0;  // annual, pre-tax
-  const ncc            = inputs.ncc || 0;                // annual, after-tax
-  const spending       = inputs.annual_spending;
-  const retireAge      = inputs.retirement_age;
-  const runs           = 1000;
 
-  // ── Config
+  // ── Inputs ────────────────────────────────────────────────────────────────
+  const age             = inputs.current_age;
+  const superBal        = inputs.super_balance;
+  const salary          = inputs.salary || 0;
+  const salarySacrifice = inputs.salary_sacrifice || 0; // annual, pre-tax
+  const ncc             = inputs.ncc || 0;              // annual, after-tax
+  const spending        = inputs.annual_spending;
+  const retireAge       = inputs.retirement_age;
+  const runs            = 1000;
+
+  // ── Config ────────────────────────────────────────────────────────────────
   const retAcc     = config.return_accumulation / 100;
   const retRet     = config.return_retirement   / 100;
   const volatility = config.return_volatility   / 100;
   const inflation  = config.inflation_rate      / 100;
   const sgRate     = config.sg_rate             / 100;
+  const tbc        = config.transfer_balance_cap;
 
-  const pensionMax  =
+  // Super fund fee rate — applied as drag on net investment returns
+  // Default 0.67% (ASIC/industry average) if not present in config
+  const feeRate = (config.fee_rate !== undefined ? config.fee_rate : 0.67) / 100;
+
+  // Centrelink config
+  const pensionMax =
     config.pension_base_single +
     config.pension_supplement_single +
     config.pension_energy_single;
@@ -101,22 +140,23 @@ function runForecast(inputs, config) {
   const accYears   = Math.max(retireAge - age, 1);
   const retYears   = Math.max(longevity - retireAge, 1);
   const totalYears = accYears + retYears;
+  const fnPerYear  = 26;
 
-  const fnPerYear = 26;
-
-  // ── Concessional contributions (SG + salary sacrifice), taxed at 15% on entry
+  // ── Contributions ─────────────────────────────────────────────────────────
+  // Concessional (SG + salary sacrifice): taxed at 15% on entry
   const sgFortnightly              = (salary * sgRate) / fnPerYear;
   const salarySacrificeFortnightly = salarySacrifice / fnPerYear;
   const concFortnightlyAfterTax    =
     (sgFortnightly + salarySacrificeFortnightly) * 0.85;
 
-  // ── Non-concessional contributions (after-tax) — no tax on entry
+  // Non-concessional (after-tax savings): no tax on entry
   const nccFortnightly = ncc / fnPerYear;
 
-  // Total fortnightly contribution into super
-  const totalContribFortnightly = concFortnightlyAfterTax + nccFortnightly;
+  // Total annual contribution into super after all applicable tax
+  const annualContrib =
+    (concFortnightlyAfterTax + nccFortnightly) * fnPerYear;
 
-  // ── Seeded PRNG — seed 42 for reproducible results
+  // ── Seeded PRNG — seed 42 for reproducible results ────────────────────────
   const rand = mulberry32(42);
 
   // Pre-generate all return arrays
@@ -138,7 +178,7 @@ function runForecast(inputs, config) {
     retReturns.push(row);
   }
 
-  // ── Monte Carlo simulation
+  // ── Monte Carlo simulation ────────────────────────────────────────────────
   const allBalances = Array.from({ length: totalYears }, () =>
     new Array(runs).fill(0)
   );
@@ -147,43 +187,96 @@ function runForecast(inputs, config) {
   for (let i = 0; i < runs; i++) {
     let bal = superBal;
 
-    // Accumulation phase
+    // ── Accumulation phase ──────────────────────────────────────────────────
     for (let y = 0; y < accYears; y++) {
       const r = accReturns[i][y];
-      bal = bal + bal * r * 0.85 + totalContribFortnightly * fnPerYear;
-      allBalances[y][i] = bal;
+
+      // Net return after 15% earnings tax and fund fees
+      // Tax only applies to the investment earnings component
+      const netAccReturn = r * 0.85 - feeRate;
+
+      // Mid-year compounding for contributions:
+      // Existing balance earns full year net return.
+      // Annual contributions earn half-year net return on average
+      // (approximates fortnightly contributions spread across the year).
+      bal = bal * (1 + netAccReturn) +
+            annualContrib * (1 + netAccReturn / 2);
+
+      allBalances[y][i] = Math.max(0, bal);
     }
 
-    // Retirement phase
+    // ── Retirement phase ────────────────────────────────────────────────────
+    // Split balance at retirement between:
+    //   penBal — tax-free pension phase (up to Transfer Balance Cap)
+    //   accBal — accumulation phase (excess above TBC, earnings taxed at 15%)
+    let penBal = Math.min(bal, tbc);
+    let accBal = Math.max(0, bal - tbc);
+
     let fundsLast = longevity;
+
     for (let y = 0; y < retYears; y++) {
-      const currentAgeYr = retireAge + y;
+      const currentAge = retireAge + y;
       const r = retReturns[i][y];
 
+      // Pension phase: tax-free earnings, fees still apply
+      const netRetReturn = r - feeRate;
+
+      // Accumulation phase: 15% earnings tax + fees
+      const netAccReturn = r * 0.85 - feeRate;
+
+      penBal = penBal * (1 + netRetReturn);
+      accBal = accBal * (1 + netAccReturn);
+
+      // Clamp to zero (fees could theoretically push very small balances negative)
+      penBal = Math.max(0, penBal);
+      accBal = Math.max(0, accBal);
+
+      const totalBal = penBal + accBal;
+
+      // Age Pension (from age 67, based on total balance each year)
       let pensionFn = 0;
-      if (currentAgeYr >= pensionAge) {
+      if (currentAge >= pensionAge) {
         pensionFn = calculatePension(
-          bal, pensionMax, assetsLower, assetsUpper, taper,
+          totalBal, pensionMax, assetsLower, assetsUpper, taper,
           incomeFree, deemingLow, deemingThr, deemingHigh
         );
       }
-
       const pensionAnnual = pensionFn * fnPerYear;
-      const realSpending  = spending * Math.pow(1 + inflation, y);
-      const net = bal * (1 + r) + pensionAnnual - realSpending;
-      bal = Math.max(0, net);
 
-      allBalances[accYears + y][i] = bal;
+      // Inflation-adjusted spending target
+      const realSpending = spending * Math.pow(1 + inflation, y);
 
-      if (bal === 0 && fundsLast === longevity) {
-        fundsLast = currentAgeYr;
+      // ATO minimum drawdown — legislated floor on annual withdrawals
+      // Applied to pension phase balance (the primary retirement account)
+      const minDrawdown = penBal * minDrawdownRate(currentAge);
+
+      // Net spending required from super after pension income
+      const spendingFromSuper = Math.max(0, realSpending - pensionAnnual);
+
+      // Actual withdrawal: higher of required spending or ATO minimum
+      const actualWithdrawal = Math.max(spendingFromSuper, minDrawdown);
+
+      // Withdraw from pension phase first, then accumulation phase
+      if (actualWithdrawal <= penBal) {
+        penBal -= actualWithdrawal;
+      } else {
+        const remainder = actualWithdrawal - penBal;
+        penBal = 0;
+        accBal = Math.max(0, accBal - remainder);
+      }
+
+      const newTotal = penBal + accBal;
+      allBalances[accYears + y][i] = newTotal;
+
+      if (newTotal === 0 && fundsLast === longevity) {
+        fundsLast = currentAge;
       }
     }
 
     fundsLastAges.push(fundsLast);
   }
 
-  // ── Percentile bands
+  // ── Percentile bands ──────────────────────────────────────────────────────
   const agesList = Array.from(
     { length: longevity - age + 1 },
     (_, i) => age + i
@@ -202,6 +295,10 @@ function runForecast(inputs, config) {
   const retirementBalanceMedian =
     accYears < p50Curve.length ? p50Curve[accYears] : Math.round(superBal);
 
+  // ── Age Pension at 67 ─────────────────────────────────────────────────────
+  // Always use the age-67 balance (not retirement balance) for a more
+  // realistic entitlement estimate — balance has already been drawing down
+  // for several years by 67 if retirement age < 67
   const pensionAge67Idx = pensionAge - age;
   const balAt67 =
     pensionAge67Idx > 0 && pensionAge67Idx < p50Curve.length
@@ -218,22 +315,22 @@ function runForecast(inputs, config) {
   const fundsLastP50 = Math.round(percentile(fundsLastAges, 50));
   const fundsLastP90 = Math.round(percentile(fundsLastAges, 90));
 
-  // ── Pension eligible-from-age scan
-  // When not eligible at 67, scan the p50 curve to find the first age
-  // where the balance drops below the upper assets threshold and pension
-  // becomes payable. Only relevant when pensionAnnualMedian === 0.
+  // ── Pension eligible-from-age scan ────────────────────────────────────────
+  // When pension = 0 at 67 (balance too high), scan the p50 curve forward to
+  // find the first age where balance drops below the upper assets threshold
+  // and pension becomes payable. Shown to users as "eligible from age X".
   let pensionEligibleFromAge = null;
   if (pensionAnnualMedian === 0) {
     const scanFrom = Math.max(pensionAge, retireAge);
     for (let checkAge = scanFrom; checkAge <= longevity; checkAge++) {
       const idx = checkAge - age;
       if (idx >= 0 && idx < p50Curve.length) {
-        const bal = p50Curve[idx];
-        const pen = calculatePension(
-          bal, pensionMax, assetsLower, assetsUpper, taper,
+        const checkBal = p50Curve[idx];
+        const checkPen = calculatePension(
+          checkBal, pensionMax, assetsLower, assetsUpper, taper,
           incomeFree, deemingLow, deemingThr, deemingHigh
         );
-        if (pen > 0) {
+        if (checkPen > 0) {
           pensionEligibleFromAge = checkAge;
           break;
         }
@@ -241,11 +338,12 @@ function runForecast(inputs, config) {
     }
   }
 
+  // ── Output ────────────────────────────────────────────────────────────────
   return {
-    ages: agesList,
-    p10:  p10Curve,
-    p50:  p50Curve,
-    p90:  p90Curve,
+    ages:                       agesList,
+    p10:                        p10Curve,
+    p50:                        p50Curve,
+    p90:                        p90Curve,
     retirement_balance_median:  retirementBalanceMedian,
     pension_annual:             pensionAnnualMedian,
     pension_eligible_from_age:  pensionEligibleFromAge,
