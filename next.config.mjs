@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: 'https://your-project-ref.supabase.co',
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: 'your-anon-key-here',
+  },
 };
 
 export default nextConfig;
