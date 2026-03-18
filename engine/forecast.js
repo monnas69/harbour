@@ -48,13 +48,13 @@ function percentile(arr, p) {
 // Applied in retirement phase — if target spending is below this, the higher
 // amount is withdrawn (reduces balance faster, more realistic for large balances)
 // The first three bands are configurable via the admin dashboard.
-function minDrawdownRate(age, drUnder65, dr65_74, dr75_79) {
+function minDrawdownRate(age, drUnder65, dr65_74, dr75_79, dr80_84, dr85_89, dr90plus) {
   if (age < 65) return drUnder65;
   if (age < 75) return dr65_74;
   if (age < 80) return dr75_79;
-  if (age < 85) return 0.07; // 7%
-  if (age < 90) return 0.09; // 9%
-  return 0.11;               // 11% — age 90+
+  if (age < 85) return dr80_84;
+  if (age < 90) return dr85_89;
+  return dr90plus;
 }
 
 // ── Centrelink Age Pension calculation ────────────────────────────────────────
@@ -127,10 +127,13 @@ function runForecast(inputs, config) {
   // Income test reduction rate — default 50% (legislated rate) if not in config
   const incomeReductionRate = (config.income_reduction_rate !== undefined ? config.income_reduction_rate : 50) / 100;
 
-  // ATO minimum drawdown rates (first three bands) — configurable via admin
-  const drUnder65 = (config.drawdown_under_65 !== undefined ? config.drawdown_under_65 : 4) / 100;
-  const dr65_74   = (config.drawdown_65_74   !== undefined ? config.drawdown_65_74   : 5) / 100;
-  const dr75_79   = (config.drawdown_75_79   !== undefined ? config.drawdown_75_79   : 6) / 100;
+  // ATO minimum drawdown rates — all bands configurable via admin
+  const drUnder65 = (config.drawdown_under_65 !== undefined ? config.drawdown_under_65 : 4)  / 100;
+  const dr65_74   = (config.drawdown_65_74   !== undefined ? config.drawdown_65_74   : 5)  / 100;
+  const dr75_79   = (config.drawdown_75_79   !== undefined ? config.drawdown_75_79   : 6)  / 100;
+  const dr80_84   = (config.drawdown_80_84   !== undefined ? config.drawdown_80_84   : 7)  / 100;
+  const dr85_89   = (config.drawdown_85_89   !== undefined ? config.drawdown_85_89   : 9)  / 100;
+  const dr90plus  = (config.drawdown_90_plus !== undefined ? config.drawdown_90_plus : 11) / 100;
 
   // Centrelink config
   const pensionMax =
@@ -258,7 +261,7 @@ function runForecast(inputs, config) {
 
       // ATO minimum drawdown — legislated floor on annual withdrawals
       // Applied to pension phase balance (the primary retirement account)
-      const minDrawdown = penBal * minDrawdownRate(currentAge, drUnder65, dr65_74, dr75_79);
+      const minDrawdown = penBal * minDrawdownRate(currentAge, drUnder65, dr65_74, dr75_79, dr80_84, dr85_89, dr90plus);
 
       // Net spending required from super after pension income
       const spendingFromSuper = Math.max(0, realSpending - pensionAnnual);

@@ -34,7 +34,7 @@ const SECTIONS = [
   {
     id: 'super',
     title: 'Superannuation — ATO',
-    keys: ['sg_rate', 'transfer_balance_cap', 'concessional_cap', 'non_concessional_cap', 'drawdown_under_65', 'drawdown_65_74', 'drawdown_75_79'],
+    keys: ['sg_rate', 'transfer_balance_cap', 'concessional_cap', 'non_concessional_cap', 'drawdown_under_65', 'drawdown_65_74', 'drawdown_75_79', 'drawdown_80_84', 'drawdown_85_89', 'drawdown_90_plus'],
   },
   {
     id: 'model',
@@ -49,7 +49,7 @@ const SECTIONS = [
 const PCT_KEYS = new Set([
   'assets_taper_rate', 'income_reduction_rate',
   'deeming_rate_lower', 'deeming_rate_upper',
-  'sg_rate', 'drawdown_under_65', 'drawdown_65_74', 'drawdown_75_79',
+  'sg_rate', 'drawdown_under_65', 'drawdown_65_74', 'drawdown_75_79', 'drawdown_80_84', 'drawdown_85_89', 'drawdown_90_plus',
   'return_accumulation', 'return_retirement', 'return_volatility', 'inflation_rate',
   'fee_rate',
 ]);
