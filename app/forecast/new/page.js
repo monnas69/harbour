@@ -4,10 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 
-// ─── ASFA Standards (matches config seeded values) ───────────────────────────
-const ASFA_COMFORTABLE = 51000;
-const ASFA_MODEST = 36000;
-
 // ─── Contribution caps (current year — update 1 July each year) ──────────────
 const CONCESSIONAL_CAP = 30000;
 const NCC_CAP = 120000;
@@ -51,7 +47,10 @@ export default function ForecastInputPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [direction, setDirection] = useState('forward');
+
+  // ─── ASFA values — loaded from config, fall back to known defaults ──────────
+  const [asfaComfortable, setAsfaComfortable] = useState(51000);
+  const [asfaModest, setAsfaModest] = useState(36000);
 
   const [form, setForm] = useState({
     name: '',
@@ -71,6 +70,28 @@ export default function ForecastInputPage() {
     spendingFortnightlyDisplay: '',
     disclaimerAccepted: false,
   });
+
+  // ─── Load ASFA values from Supabase config on mount ──────────────────────
+  useEffect(() => {
+    async function loadAsfa() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('config')
+          .select('key, value')
+          .in('key', ['asfa_comfortable_single', 'asfa_modest_single']);
+        if (data) {
+          data.forEach(row => {
+            if (row.key === 'asfa_comfortable_single') setAsfaComfortable(Number(row.value));
+            if (row.key === 'asfa_modest_single') setAsfaModest(Number(row.value));
+          });
+        }
+      } catch (e) {
+        // Silently fall back to useState defaults
+      }
+    }
+    loadAsfa();
+  }, []);
 
   // Validation per step
   const stepErrors = () => {
@@ -107,13 +128,11 @@ export default function ForecastInputPage() {
     const err = stepErrors();
     if (err) { setError(err); return; }
     setError('');
-    setDirection('forward');
     setStep(s => s + 1);
   };
 
   const goBack = () => {
     setError('');
-    setDirection('back');
     setStep(s => s - 1);
   };
 
@@ -307,67 +326,21 @@ export default function ForecastInputPage() {
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-          font-family: 'DM Sans', sans-serif;
-          background: var(--cream);
-          color: var(--text);
-          min-height: 100vh;
-        }
+        body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; }
 
-        .harbour-wrap {
-          min-height: 100vh;
-          display: grid;
-          grid-template-columns: 280px 1fr;
-          background: var(--cream);
-        }
+        .harbour-wrap { min-height: 100vh; display: grid; grid-template-columns: 280px 1fr; background: var(--cream); }
 
-        .sidebar {
-          background: var(--navy);
-          display: flex;
-          flex-direction: column;
-          padding: 48px 32px;
-          position: sticky;
-          top: 0;
-          height: 100vh;
-        }
+        .sidebar { background: var(--navy); display: flex; flex-direction: column; padding: 48px 32px; position: sticky; top: 0; height: 100vh; }
 
-        .sidebar-logo {
-          font-family: 'Playfair Display', serif;
-          font-size: 28px;
-          color: var(--gold);
-          letter-spacing: 0.02em;
-          margin-bottom: 8px;
-          text-decoration: none;
-        }
+        .sidebar-logo { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--gold); letter-spacing: 0.02em; margin-bottom: 8px; text-decoration: none; }
 
-        .sidebar-tagline {
-          font-size: 12px;
-          color: rgba(255,255,255,0.45);
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          margin-bottom: 56px;
-        }
+        .sidebar-tagline { font-size: 12px; color: rgba(255,255,255,0.45); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 56px; }
 
         .step-list { list-style: none; flex: 1; }
 
-        .step-item {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 12px 0;
-          cursor: default;
-          transition: all 0.2s;
-        }
+        .step-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; cursor: default; transition: all 0.2s; }
 
-        .step-num {
-          width: 32px; height: 32px;
-          border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
-          flex-shrink: 0; transition: all 0.3s;
-          border: 1.5px solid rgba(255,255,255,0.15);
-          color: rgba(255,255,255,0.35);
-        }
+        .step-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; flex-shrink: 0; transition: all 0.3s; border: 1.5px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.35); }
 
         .step-item.done .step-num { background: var(--gold); border-color: var(--gold); color: var(--navy); }
         .step-item.active .step-num { background: transparent; border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
@@ -376,15 +349,9 @@ export default function ForecastInputPage() {
         .step-item.done .step-label  { color: rgba(255,255,255,0.55); }
         .step-item.active .step-label { color: #fff; font-weight: 500; }
 
-        .sidebar-foot {
-          font-size: 11px; color: rgba(255,255,255,0.2); line-height: 1.6;
-          border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px;
-        }
+        .sidebar-foot { font-size: 11px; color: rgba(255,255,255,0.2); line-height: 1.6; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px; }
 
-        .main {
-          display: flex; flex-direction: column; justify-content: center;
-          padding: 64px 72px; min-height: 100vh; max-width: 640px;
-        }
+        .main { display: flex; flex-direction: column; justify-content: center; padding: 64px 72px; min-height: 100vh; max-width: 640px; }
 
         .step-heading { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700; color: var(--navy); line-height: 1.2; margin-bottom: 10px; }
         .step-sub { font-size: 15px; color: var(--muted); margin-bottom: 40px; line-height: 1.5; font-weight: 400; }
@@ -393,30 +360,13 @@ export default function ForecastInputPage() {
 
         .field-label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
 
-        .field-input {
-          width: 100%; padding: 16px 20px;
-          font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 400;
-          background: #fff; border: 2px solid var(--cream2); border-radius: 10px;
-          color: var(--navy); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-          -webkit-appearance: none; appearance: none;
-        }
+        .field-input { width: 100%; padding: 16px 20px; font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 400; background: #fff; border: 2px solid var(--cream2); border-radius: 10px; color: var(--navy); outline: none; transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none; appearance: none; }
         .field-input:focus { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(201,168,76,0.12); }
         .field-input::placeholder { color: #bbb; }
         .field-hint { margin-top: 7px; font-size: 13px; color: var(--muted); }
 
-        .field-explainer {
-          background: rgba(13,31,53,0.04);
-          border-left: 3px solid var(--cream2);
-          border-radius: 0 8px 8px 0;
-          padding: 12px 16px;
-          margin-bottom: 16px;
-          font-size: 13px;
-          color: var(--muted);
-          line-height: 1.6;
-        }
+        .field-explainer { background: rgba(13,31,53,0.04); border-left: 3px solid var(--cream2); border-radius: 0 8px 8px 0; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--muted); line-height: 1.6; }
         .field-explainer strong { color: var(--navy); font-weight: 600; }
-
-        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
 
         .spend-grid { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; margin-bottom: 12px; }
         .spend-divider { font-size: 13px; color: var(--muted); text-align: center; white-space: nowrap; }
@@ -446,41 +396,11 @@ export default function ForecastInputPage() {
         .review-val { font-weight: 600; color: var(--navy); text-align: right; }
         .review-section-head { background: var(--cream2); padding: 8px 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 
-        .disclaimer-box {
-          background: rgba(13,31,53,0.04);
-          border: 1.5px solid var(--cream2);
-          border-radius: 10px;
-          padding: 20px 24px;
-          margin-bottom: 24px;
-        }
-
-        .disclaimer-box.accepted {
-          border-color: rgba(201,168,76,0.5);
-          background: rgba(201,168,76,0.05);
-        }
-
-        .disclaimer-label {
-          display: flex;
-          align-items: flex-start;
-          gap: 14px;
-          cursor: pointer;
-        }
-
-        .disclaimer-checkbox {
-          margin-top: 2px;
-          width: 18px;
-          height: 18px;
-          flex-shrink: 0;
-          accent-color: var(--gold);
-          cursor: pointer;
-        }
-
-        .disclaimer-text {
-          font-size: 13px;
-          color: var(--muted);
-          line-height: 1.65;
-        }
-
+        .disclaimer-box { background: rgba(13,31,53,0.04); border: 1.5px solid var(--cream2); border-radius: 10px; padding: 20px 24px; margin-bottom: 24px; }
+        .disclaimer-box.accepted { border-color: rgba(201,168,76,0.5); background: rgba(201,168,76,0.05); }
+        .disclaimer-label { display: flex; align-items: flex-start; gap: 14px; cursor: pointer; }
+        .disclaimer-checkbox { margin-top: 2px; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--gold); cursor: pointer; }
+        .disclaimer-text { font-size: 13px; color: var(--muted); line-height: 1.65; }
         .disclaimer-text strong { color: var(--navy); }
 
         .btn-row { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
@@ -488,7 +408,7 @@ export default function ForecastInputPage() {
         .btn-back { padding: 14px 24px; border: 2px solid var(--cream2); border-radius: 10px; background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
         .btn-back:hover { border-color: var(--navy); color: var(--navy); }
 
-        .btn-next { flex: 1; padding: 16px 24px; background: var(--navy); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.25s; letter-spacing: 0.01em; position: relative; overflow: hidden; }
+        .btn-next { flex: 1; padding: 16px 24px; background: var(--navy); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.25s; letter-spacing: 0.01em; }
         .btn-next:hover:not(:disabled) { background: var(--navy2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(13,31,53,0.25); }
         .btn-next:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
         .btn-next.gold { background: var(--gold); color: var(--navy); }
@@ -521,7 +441,7 @@ export default function ForecastInputPage() {
 
       <div className="harbour-wrap">
         <aside className="sidebar">
-          <a href="/" className="sidebar-logo" style={{ textDecoration: 'none' }}>Harbour</a>
+          <a href="/" className="sidebar-logo">Harbour</a>
           <div className="sidebar-tagline">Retirement planning</div>
           <ul className="step-list">
             {STEPS.map((s) => {
@@ -545,9 +465,7 @@ export default function ForecastInputPage() {
             <div className="progress-bar-fill" style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }} />
           </div>
 
-          {error && (
-            <div className="error-msg"><span>⚠</span> {error}</div>
-          )}
+          {error && <div className="error-msg"><span>⚠</span> {error}</div>}
 
           {/* Step 1 */}
           {step === 1 && (
@@ -682,27 +600,27 @@ export default function ForecastInputPage() {
             </div>
           )}
 
-          {/* Step 5 */}
+          {/* Step 5 — ASFA values loaded dynamically from config */}
           {step === 5 && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">How much will<br />you spend?</h1>
               <p className="step-sub">Enter your target retirement spending. Use the ASFA standards as a starting point.</p>
               <div className="preset-row">
-                <button className={`preset-btn ${form.spendingAnnual === ASFA_COMFORTABLE ? 'active' : ''}`} onClick={() => setAsfaPreset(ASFA_COMFORTABLE)}>
+                <button className={`preset-btn ${form.spendingAnnual === asfaComfortable ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaComfortable)}>
                   <div className="preset-name">ASFA Comfortable</div>
-                  <div className="preset-amount">{formatCurrency(ASFA_COMFORTABLE)}</div>
-                  <div className="preset-freq">{formatCurrency(annualToFortnightly(ASFA_COMFORTABLE))} per fortnight</div>
+                  <div className="preset-amount">{formatCurrency(asfaComfortable)}</div>
+                  <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaComfortable))} per fortnight</div>
                 </button>
-                <button className={`preset-btn ${form.spendingAnnual === ASFA_MODEST ? 'active' : ''}`} onClick={() => setAsfaPreset(ASFA_MODEST)}>
+                <button className={`preset-btn ${form.spendingAnnual === asfaModest ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaModest)}>
                   <div className="preset-name">ASFA Modest</div>
-                  <div className="preset-amount">{formatCurrency(ASFA_MODEST)}</div>
-                  <div className="preset-freq">{formatCurrency(annualToFortnightly(ASFA_MODEST))} per fortnight</div>
+                  <div className="preset-amount">{formatCurrency(asfaModest)}</div>
+                  <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaModest))} per fortnight</div>
                 </button>
               </div>
               <div className="spend-grid">
                 <div>
                   <label className="field-label">Annual spending</label>
-                  <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $51,000" value={form.spendingAnnualDisplay} onChange={e => handleSpendingAnnual(e.target.value)} onBlur={handleSpendingAnnualBlur} />
+                  <input className="field-input" type="text" inputMode="decimal" placeholder={`e.g. ${formatCurrency(asfaComfortable)}`} value={form.spendingAnnualDisplay} onChange={e => handleSpendingAnnual(e.target.value)} onBlur={handleSpendingAnnualBlur} />
                 </div>
                 <div className="spend-divider">↔</div>
                 <div>
