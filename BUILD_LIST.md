@@ -65,7 +65,7 @@
 | **Admin authentication** | *Protected by ADMIN_EMAIL env variable* | ✓ Done |
 | **Stale forecast detection** | *Dashboard shows rate-change notice when forecasts predate latest config update* | ✓ Done |
 | **Concessional & NCC caps in admin** | *concessional_cap and non_concessional_cap editable via admin dashboard* | ✓ Done |
-| **Fee rate in admin** | *fee_rate config row — add via SQL: `INSERT INTO config (key, value, label, section) VALUES ('fee_rate', 0.67, 'Super fund fee rate (% p.a.)', 'model')`* | → To do |
+| **Fee rate in admin** | *fee_rate config row — add via SQL: `INSERT INTO config (key, value, label, section) VALUES ('fee_rate', 0.67, 'Super fund fee rate (% p.a.)', 'model')`* | ✓ Done |
 
 ### Account dashboard & profile
 
