@@ -455,11 +455,19 @@ export default function ForecastPreviewPage() {
           {/* Stat cards */}
           <div className="hf-stat-grid">
 
-            <div className="hf-stat-card hf-stat-gold">
-              <div className="hf-stat-label">Projected super at retirement</div>
-              <div className="hf-stat-value gold">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
-              <div className="hf-stat-sub">Median estimate at age {retirementAge} · in today's dollars<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
-            </div>
+            {yearsToRetirement > 0 ? (
+              <div className="hf-stat-card hf-stat-gold">
+                <div className="hf-stat-label">Projected super at retirement</div>
+                <div className="hf-stat-value gold">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
+                <div className="hf-stat-sub">Median estimate at age {retirementAge} · in today's dollars<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
+              </div>
+            ) : (
+              <div className="hf-stat-card hf-stat-gold">
+                <div className="hf-stat-label">Current super balance</div>
+                <div className="hf-stat-value gold">{fmt(superBalance)}</div>
+                <div className="hf-stat-sub">Today · age {currentAge}<br />starting point for this forecast</div>
+              </div>
+            )}
 
             <div className="hf-stat-card hf-stat-green">
               <div className="hf-stat-label">Estimated Age Pension</div>
