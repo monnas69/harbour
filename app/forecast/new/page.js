@@ -52,6 +52,12 @@ export default function ForecastInputPage() {
   const [asfaComfortable, setAsfaComfortable] = useState(51000);
   const [asfaModest, setAsfaModest] = useState(36000);
 
+  // ─── Forecast mode ────────────────────────────────────────────────────────
+  // 'traditional'  → user sets a spending target, engine projects balances
+  // 'safe_spending' → user sets a target depletion age, engine solves for max spend
+  const [forecastMode, setForecastMode] = useState('traditional');
+  const [targetHorizon, setTargetHorizon] = useState(90);
+
   const [form, setForm] = useState({
     name: '',
     currentAge: '',
@@ -117,9 +123,12 @@ export default function ForecastInputPage() {
       if (retAge > 75) return 'Retirement age cannot exceed 75 for now.';
     }
     if (step === 5) {
-      const annual = parseCurrency(form.spendingAnnualDisplay);
-      if (!form.spendingAnnualDisplay || annual === '') return 'Please enter your target retirement spending.';
-      if (annual < 1000) return 'Annual spending seems too low. Please check.';
+      if (forecastMode === 'traditional') {
+        const annual = parseCurrency(form.spendingAnnualDisplay);
+        if (!form.spendingAnnualDisplay || annual === '') return 'Please enter your target retirement spending.';
+        if (annual < 1000) return 'Annual spending seems too low. Please check.';
+      }
+      // safe_spending mode: targetHorizon always has a valid default — no extra validation needed
     }
     return null;
   };
@@ -253,18 +262,26 @@ export default function ForecastInputPage() {
     setLoading(true);
     setError('');
     try {
-      const payload = {
+      const base = {
         name:             form.name.trim(),
         current_age:      parseInt(form.currentAge),
         super_balance:    parseFloat(form.superBalance),
         retirement_age:   parseInt(form.retirementAge),
-        annual_spending:  parseFloat(form.spendingAnnual),
         salary:           form.salary ? parseFloat(form.salary) : 0,
         salary_sacrifice: form.salarySacrifice ? parseFloat(form.salarySacrifice) : 0,
         ncc:              form.ncc ? parseFloat(form.ncc) : 0,
       };
 
-      const res = await fetch('/api/forecast', {
+      let endpoint, payload;
+      if (forecastMode === 'safe_spending') {
+        endpoint = '/api/forecast/safe-spending';
+        payload  = { ...base, target_horizon: targetHorizon };
+      } else {
+        endpoint = '/api/forecast';
+        payload  = { ...base, annual_spending: parseFloat(form.spendingAnnual) };
+      }
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -286,7 +303,7 @@ export default function ForecastInputPage() {
       }
 
       sessionStorage.setItem('harbour_preview', JSON.stringify({
-        inputs: payload,
+        inputs: { ...payload, mode: forecastMode },
         outputs: data,
       }));
       router.push('/forecast/preview');
@@ -428,6 +445,18 @@ export default function ForecastInputPage() {
         .section-divider { border: none; border-top: 1px solid var(--cream2); margin: 8px 0 28px; }
 
         .hint-nudge { margin-top: 10px; font-size: 12px; color: #bbb; }
+
+        .mode-toggle { display: flex; gap: 0; margin-bottom: 32px; border: 2px solid var(--cream2); border-radius: 10px; overflow: hidden; }
+        .mode-toggle-btn { flex: 1; padding: 14px 16px; border: none; background: #fff; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--muted); transition: all 0.2s; text-align: center; }
+        .mode-toggle-btn.active { background: var(--navy); color: #fff; }
+        .mode-toggle-btn:first-child { border-right: 1px solid var(--cream2); }
+
+        .horizon-row { display: flex; gap: 10px; margin-bottom: 24px; }
+        .horizon-btn { flex: 1; padding: 18px 12px; border: 2px solid var(--cream2); border-radius: 10px; background: #fff; cursor: pointer; text-align: center; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+        .horizon-btn:hover { border-color: var(--gold); background: rgba(201,168,76,0.05); }
+        .horizon-btn.active { border-color: var(--gold); background: rgba(201,168,76,0.08); }
+        .horizon-age { font-size: 24px; font-weight: 700; color: var(--navy); font-family: 'Playfair Display', serif; display: block; margin-bottom: 4px; }
+        .horizon-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
 
         @media (max-width: 768px) {
           .harbour-wrap { grid-template-columns: 1fr; }
@@ -600,35 +629,87 @@ export default function ForecastInputPage() {
             </div>
           )}
 
-          {/* Step 5 — ASFA values loaded dynamically from config */}
+          {/* Step 5 — Traditional spending target or Safe Spending reverse mode */}
           {step === 5 && (
             <div onKeyDown={handleKeyDown}>
-              <h1 className="step-heading">How much will<br />you spend?</h1>
-              <p className="step-sub">Enter your target retirement spending. Use the ASFA standards as a starting point.</p>
-              <div className="preset-row">
-                <button className={`preset-btn ${form.spendingAnnual === asfaComfortable ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaComfortable)}>
-                  <div className="preset-name">ASFA Comfortable</div>
-                  <div className="preset-amount">{formatCurrency(asfaComfortable)}</div>
-                  <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaComfortable))} per fortnight</div>
+              <h1 className="step-heading">
+                {forecastMode === 'traditional' ? <>How much will<br />you spend?</> : <>Until what age should<br />your money last?</>}
+              </h1>
+              <p className="step-sub">
+                {forecastMode === 'traditional'
+                  ? 'Set a spending target and we project whether your super will last.'
+                  : 'We'll calculate the maximum you can safely spend each year in retirement.'}
+              </p>
+
+              {/* Mode toggle */}
+              <div className="mode-toggle">
+                <button
+                  className={`mode-toggle-btn${forecastMode === 'traditional' ? ' active' : ''}`}
+                  onClick={() => setForecastMode('traditional')}
+                >
+                  Set spending target
                 </button>
-                <button className={`preset-btn ${form.spendingAnnual === asfaModest ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaModest)}>
-                  <div className="preset-name">ASFA Modest</div>
-                  <div className="preset-amount">{formatCurrency(asfaModest)}</div>
-                  <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaModest))} per fortnight</div>
+                <button
+                  className={`mode-toggle-btn${forecastMode === 'safe_spending' ? ' active' : ''}`}
+                  onClick={() => setForecastMode('safe_spending')}
+                >
+                  Find my safe spending
                 </button>
               </div>
-              <div className="spend-grid">
-                <div>
-                  <label className="field-label">Annual spending</label>
-                  <input className="field-input" type="text" inputMode="decimal" placeholder={`e.g. ${formatCurrency(asfaComfortable)}`} value={form.spendingAnnualDisplay} onChange={e => handleSpendingAnnual(e.target.value)} onBlur={handleSpendingAnnualBlur} />
-                </div>
-                <div className="spend-divider">↔</div>
-                <div>
-                  <label className="field-label">Per fortnight</label>
-                  <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $1,962" value={form.spendingFortnightlyDisplay} onChange={e => handleSpendingFortnightly(e.target.value)} onBlur={handleSpendingFortnightlyBlur} />
-                </div>
-              </div>
-              <p className="field-hint" style={{ marginTop: '-16px', marginBottom: '24px' }}>In today's dollars. Inflation (2.5% p.a.) is applied automatically in your forecast.</p>
+
+              {/* Traditional: spending inputs */}
+              {forecastMode === 'traditional' && (
+                <>
+                  <div className="preset-row">
+                    <button className={`preset-btn ${form.spendingAnnual === asfaComfortable ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaComfortable)}>
+                      <div className="preset-name">ASFA Comfortable</div>
+                      <div className="preset-amount">{formatCurrency(asfaComfortable)}</div>
+                      <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaComfortable))} per fortnight</div>
+                    </button>
+                    <button className={`preset-btn ${form.spendingAnnual === asfaModest ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaModest)}>
+                      <div className="preset-name">ASFA Modest</div>
+                      <div className="preset-amount">{formatCurrency(asfaModest)}</div>
+                      <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaModest))} per fortnight</div>
+                    </button>
+                  </div>
+                  <div className="spend-grid">
+                    <div>
+                      <label className="field-label">Annual spending</label>
+                      <input className="field-input" type="text" inputMode="decimal" placeholder={`e.g. ${formatCurrency(asfaComfortable)}`} value={form.spendingAnnualDisplay} onChange={e => handleSpendingAnnual(e.target.value)} onBlur={handleSpendingAnnualBlur} />
+                    </div>
+                    <div className="spend-divider">↔</div>
+                    <div>
+                      <label className="field-label">Per fortnight</label>
+                      <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $1,962" value={form.spendingFortnightlyDisplay} onChange={e => handleSpendingFortnightly(e.target.value)} onBlur={handleSpendingFortnightlyBlur} />
+                    </div>
+                  </div>
+                  <p className="field-hint" style={{ marginTop: '-16px', marginBottom: '24px' }}>In today's dollars. Inflation (2.5% p.a.) is applied automatically in your forecast.</p>
+                </>
+              )}
+
+              {/* Safe spending: target horizon selector */}
+              {forecastMode === 'safe_spending' && (
+                <>
+                  <div className="field-explainer" style={{ marginBottom: '20px' }}>
+                    Using 1,000 Monte Carlo scenarios, we'll find the <strong>maximum annual spending</strong> such that your super is projected to last until your chosen age — factoring in investment returns, the Age Pension, ATO drawdown rules, and inflation.
+                  </div>
+                  <label className="field-label">Target age for funds to last until</label>
+                  <div className="horizon-row">
+                    {[85, 90, 95].map(age => (
+                      <button
+                        key={age}
+                        className={`horizon-btn${targetHorizon === age ? ' active' : ''}`}
+                        onClick={() => setTargetHorizon(age)}
+                      >
+                        <span className="horizon-age">{age}</span>
+                        <span className="horizon-label">{age === 85 ? 'Conservative' : age === 90 ? 'Standard' : 'Long-lived'}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="field-hint" style={{ marginBottom: '24px' }}>We'll return conservative, balanced, and optimistic spending estimates — so you can see the range.</p>
+                </>
+              )}
+
               <div className="btn-row">
                 <button className="btn-back" onClick={goBack}>← Back</button>
                 <button className="btn-next" onClick={goNext}>Review →</button>
@@ -653,9 +734,13 @@ export default function ForecastInputPage() {
                 {form.salarySacrifice && <div className="review-row"><span className="review-key">Salary sacrifice (after 15% tax)</span><span className="review-val">{formatCurrency(parseFloat(form.salarySacrifice) * 0.85)}/yr</span></div>}
                 {form.ncc && <div className="review-row"><span className="review-key">Non-concessional contributions</span><span className="review-val">{formatCurrency(form.ncc)}/yr</span></div>}
                 <div className="review-section-head">Retirement plan</div>
+                <div className="review-row"><span className="review-key">Forecast type</span><span className="review-val">{forecastMode === 'safe_spending' ? 'Safe Spending' : 'Traditional'}</span></div>
                 <div className="review-row"><span className="review-key">Target retirement age</span><span className="review-val">{form.retirementAge}</span></div>
                 <div className="review-row"><span className="review-key">Age Pension eligibility</span><span className="review-val">Age 67</span></div>
-                <div className="review-row"><span className="review-key">Retirement spending</span><span className="review-val">{formatCurrency(form.spendingFortnightly)}/fn · {formatCurrency(form.spendingAnnual)}/yr</span></div>
+                {forecastMode === 'traditional'
+                  ? <div className="review-row"><span className="review-key">Retirement spending</span><span className="review-val">{formatCurrency(form.spendingFortnightly)}/fn · {formatCurrency(form.spendingAnnual)}/yr</span></div>
+                  : <div className="review-row"><span className="review-key">Target depletion age</span><span className="review-val">Age {targetHorizon}</span></div>
+                }
                 <div className="review-section-head">Assumptions (defaults)</div>
                 <div className="review-row"><span className="review-key">Homeowner</span><span className="review-val">Yes</span></div>
                 <div className="review-row"><span className="review-key">Relationship status</span><span className="review-val">Single</span></div>
@@ -687,7 +772,10 @@ export default function ForecastInputPage() {
                   disabled={loading || !form.disclaimerAccepted}
                   title={!form.disclaimerAccepted ? 'Please read and accept the disclaimer above' : ''}
                 >
-                  {loading ? <><span className="spinner dark" />Running forecast…</> : 'Run my forecast →'}
+                  {loading
+                    ? <><span className="spinner dark" />{forecastMode === 'safe_spending' ? 'Calculating safe spending…' : 'Running forecast…'}</>
+                    : forecastMode === 'safe_spending' ? 'Calculate safe spending →' : 'Run my forecast →'
+                  }
                 </button>
               </div>
 
