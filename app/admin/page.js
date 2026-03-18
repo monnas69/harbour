@@ -38,17 +38,20 @@ const SECTIONS = [
   },
   {
     id: 'model',
+    icon: '⚙️',
     title: 'Simulation parameters',
-    keys: ['return_accumulation', 'return_retirement', 'return_volatility', 'inflation_rate'],
+    sub: 'Monte Carlo model assumptions — review annually',
+    keys: ['return_accumulation', 'return_retirement', 'return_volatility', 'inflation_rate', 'fee_rate'],
   },
 ];
 
 // Keys that display as percentages
 const PCT_KEYS = new Set([
-  'income_reduction_rate',
+  'assets_taper_rate', 'income_reduction_rate',
   'deeming_rate_lower', 'deeming_rate_upper',
   'sg_rate', 'drawdown_under_65', 'drawdown_65_74', 'drawdown_75_79',
   'return_accumulation', 'return_retirement', 'return_volatility', 'inflation_rate',
+  'fee_rate',
 ]);
 
 // Keys that are fortnightly dollar amounts
