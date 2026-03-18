@@ -535,7 +535,7 @@ function ForecastInputInner() {
 
           {error && <div className="error-msg"><span>⚠</span> {error}</div>}
 
-          {/* ── Step 1 — Name (same for both flows) ──────────────────────────── */}
+          {/* ── Step 1 — Name + retired toggle (same for both flows) ─────────── */}
           {step === 1 && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">Let's start<br />with your name.</h1>
@@ -543,6 +543,25 @@ function ForecastInputInner() {
               <div className="field-group">
                 <label className="field-label">Your first name</label>
                 <input className="field-input" type="text" placeholder="e.g. Karen" value={form.name} onChange={e => setField('name', e.target.value)} autoFocus autoComplete="given-name" />
+              </div>
+              <div className="field-group">
+                <label className="field-label">Are you already retired?</label>
+                <div className="mode-toggle" style={{ marginBottom: 0 }}>
+                  <button
+                    type="button"
+                    className={`mode-toggle-btn${!isRetired ? ' active' : ''}`}
+                    onClick={() => { setIsRetired(false); setError(''); }}
+                  >
+                    No — still working
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-toggle-btn${isRetired ? ' active' : ''}`}
+                    onClick={() => { setIsRetired(true); setForecastMode('safe_spending'); setError(''); }}
+                  >
+                    Yes — already retired
+                  </button>
+                </div>
               </div>
               <div className="btn-row">
                 <button className="btn-next" onClick={goNext}>Continue →</button>
