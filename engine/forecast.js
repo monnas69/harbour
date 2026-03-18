@@ -47,10 +47,11 @@ function percentile(arr, p) {
 // Source: ato.gov.au — legislated minimum annual pension payments
 // Applied in retirement phase — if target spending is below this, the higher
 // amount is withdrawn (reduces balance faster, more realistic for large balances)
-function minDrawdownRate(age) {
-  if (age < 65) return 0.04; // 4%
-  if (age < 75) return 0.05; // 5%
-  if (age < 80) return 0.06; // 6%
+// The first three bands are configurable via the admin dashboard.
+function minDrawdownRate(age, drUnder65, dr65_74, dr75_79) {
+  if (age < 65) return drUnder65;
+  if (age < 75) return dr65_74;
+  if (age < 80) return dr75_79;
   if (age < 85) return 0.07; // 7%
   if (age < 90) return 0.09; // 9%
   return 0.11;               // 11% — age 90+
@@ -69,7 +70,8 @@ function calculatePension(
   incomeFree,
   deemingLow,
   deemingThr,
-  deemingHigh
+  deemingHigh,
+  incomeReductionRate = 0.5
 ) {
   if (bal <= 0) return pensionMax; // balance exhausted — full pension
   if (bal >= assetsUpper) return 0;
@@ -90,7 +92,7 @@ function calculatePension(
       deemingThr * deemingLow + (bal - deemingThr) * deemingHigh;
   }
   const deemedFn = deemedAnnual / fnPerYear;
-  const incomeReduction = Math.max(0, (deemedFn - incomeFree) * 0.5);
+  const incomeReduction = Math.max(0, (deemedFn - incomeFree) * incomeReductionRate);
   const pensionIncome = Math.max(0, pensionMax - incomeReduction);
 
   // Lower of the two tests applies
@@ -121,6 +123,14 @@ function runForecast(inputs, config) {
   // Super fund fee rate — applied as drag on net investment returns
   // Default 0.67% (ASIC/industry average) if not present in config
   const feeRate = (config.fee_rate !== undefined ? config.fee_rate : 0.67) / 100;
+
+  // Income test reduction rate — default 50% (legislated rate) if not in config
+  const incomeReductionRate = (config.income_reduction_rate !== undefined ? config.income_reduction_rate : 50) / 100;
+
+  // ATO minimum drawdown rates (first three bands) — configurable via admin
+  const drUnder65 = (config.drawdown_under_65 !== undefined ? config.drawdown_under_65 : 4) / 100;
+  const dr65_74   = (config.drawdown_65_74   !== undefined ? config.drawdown_65_74   : 5) / 100;
+  const dr75_79   = (config.drawdown_75_79   !== undefined ? config.drawdown_75_79   : 6) / 100;
 
   // Centrelink config
   const pensionMax =
@@ -238,7 +248,7 @@ function runForecast(inputs, config) {
       if (currentAge >= pensionAge) {
         pensionFn = calculatePension(
           totalBal, pensionMax, assetsLower, assetsUpper, taper,
-          incomeFree, deemingLow, deemingThr, deemingHigh
+          incomeFree, deemingLow, deemingThr, deemingHigh, incomeReductionRate
         );
       }
       const pensionAnnual = pensionFn * fnPerYear;
@@ -248,7 +258,7 @@ function runForecast(inputs, config) {
 
       // ATO minimum drawdown — legislated floor on annual withdrawals
       // Applied to pension phase balance (the primary retirement account)
-      const minDrawdown = penBal * minDrawdownRate(currentAge);
+      const minDrawdown = penBal * minDrawdownRate(currentAge, drUnder65, dr65_74, dr75_79);
 
       // Net spending required from super after pension income
       const spendingFromSuper = Math.max(0, realSpending - pensionAnnual);
@@ -307,7 +317,7 @@ function runForecast(inputs, config) {
 
   const pensionFnMedian = calculatePension(
     balAt67, pensionMax, assetsLower, assetsUpper, taper,
-    incomeFree, deemingLow, deemingThr, deemingHigh
+    incomeFree, deemingLow, deemingThr, deemingHigh, incomeReductionRate
   );
   const pensionAnnualMedian = Math.round(pensionFnMedian * fnPerYear);
 
@@ -328,7 +338,7 @@ function runForecast(inputs, config) {
         const checkBal = p50Curve[idx];
         const checkPen = calculatePension(
           checkBal, pensionMax, assetsLower, assetsUpper, taper,
-          incomeFree, deemingLow, deemingThr, deemingHigh
+          incomeFree, deemingLow, deemingThr, deemingHigh, incomeReductionRate
         );
         if (checkPen > 0) {
           pensionEligibleFromAge = checkAge;
