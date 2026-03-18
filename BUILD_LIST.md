@@ -103,7 +103,7 @@
 | **ABN registration** | *ABN registered — required before charging for the product* | ✓ Done |
 | **Google Search Console** | *harbourapp.com.au verified via Cloudflare DNS, sitemap submitted* | ✓ Done |
 | **Landing page mobile responsive** | *Viewport meta tag added, two breakpoints (960px, 480px), hero wrap fixed* | ✓ Done |
-| **Aesthetic & copy review** | *Review all pages before Stripe integration — in progress* | → To do |
+| **Aesthetic & copy review** | *Review all pages before Stripe integration — in progress* | ✓ Done |
 
 ---
 
