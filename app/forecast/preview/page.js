@@ -304,6 +304,34 @@ export default function ForecastPreviewPage() {
               These spending amounts are in <strong>today's dollars</strong> — the engine adjusts for 2.5% p.a. inflation internally so you can act on these numbers now.
             </div>
 
+            {/* Balance stat cards */}
+            <div className="hf-stat-grid">
+              <div className="hf-stat-card hf-stat-gold">
+                <div className="hf-stat-label">Current super balance</div>
+                <div className="hf-stat-value gold">{fmt(superBalance)}</div>
+                <div className="hf-stat-sub">Today · age {currentAge}<br />starting point for this forecast</div>
+              </div>
+              <div className="hf-stat-card hf-stat-blue">
+                <div className="hf-stat-label">Projected super at retirement</div>
+                <div className="hf-stat-value blue">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
+                <div className="hf-stat-sub">Median estimate at age {retirementAge} · in today's dollars<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
+              </div>
+              <div className="hf-stat-card hf-stat-green">
+                <div className="hf-stat-label">Estimated Age Pension</div>
+                <div className="hf-stat-value green" style={{ fontSize: pensionAnnual === 0 ? '22px' : undefined }}>
+                  {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible at 67'}
+                </div>
+                <div className="hf-stat-sub">
+                  {pensionAnnual > 0
+                    ? <>{fmtFull(pensionFortnightly)} per fortnight from age 67<br />factored into safe spending amounts above</>
+                    : pensionEligibleFromAge
+                    ? <>Projected balance exceeds threshold at 67<br />Eligible from approximately <strong style={{ color: '#7ec896' }}>age {pensionEligibleFromAge}</strong> as balance reduces</>
+                    : <>Projected balance exceeds the assets or income test threshold</>
+                  }
+                </div>
+              </div>
+            </div>
+
             {/* Safe spending headline */}
             <div className="ss-headline">
               <div className="ss-headline-label">Balanced safe spending · Age {targetHorizon} target</div>
