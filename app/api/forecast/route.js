@@ -79,22 +79,33 @@ export async function POST(request) {
 
   // ── If user is authenticated, save to Supabase and return the forecast id
   if (user) {
-    // Check forecast limit (free tier = 3 max)
-    const { count, error: countError } = await supabase
-      .from('forecasts')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id);
+    // Check if user is on Plus plan
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_plus')
+      .eq('id', user.id)
+      .single();
 
-    if (countError) {
-      console.error('Forecast count error:', countError);
-      return Response.json({ error: 'Failed to check forecast limit' }, { status: 500 });
-    }
+    const isPlus = profile?.is_plus === true;
 
-    if (count >= 3) {
-      return Response.json(
-        { error: 'FORECAST_LIMIT_REACHED', message: 'Free accounts are limited to 3 saved forecasts. Delete an existing forecast to save a new one.' },
-        { status: 403 }
-      );
+    // Check forecast limit (free tier = 3 max; Plus = unlimited)
+    if (!isPlus) {
+      const { count, error: countError } = await supabase
+        .from('forecasts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (countError) {
+        console.error('Forecast count error:', countError);
+        return Response.json({ error: 'Failed to check forecast limit' }, { status: 500 });
+      }
+
+      if (count >= 3) {
+        return Response.json(
+          { error: 'FORECAST_LIMIT_REACHED', message: 'Free accounts are limited to 3 saved forecasts. Upgrade to Harbour Plus for unlimited forecasts, or delete an existing forecast to save a new one.' },
+          { status: 403 }
+        );
+      }
     }
 
     const { data: saved, error: saveError } = await supabase

@@ -10,6 +10,7 @@ export default function ProfilePage() {
 
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
+  const [isPlus, setIsPlus] = useState(false)
 
   // Display name
   const [displayName, setDisplayName] = useState('')
@@ -37,6 +38,15 @@ export default function ProfilePage() {
       setUser(user)
       setEmail(user.email || '')
       setDisplayName(user.user_metadata?.display_name || '')
+
+      // Load plan status
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_plus')
+        .eq('id', user.id)
+        .single()
+      setIsPlus(profile?.is_plus === true)
+
       setLoading(false)
     }
     loadUser()
@@ -237,6 +247,41 @@ export default function ProfilePage() {
       color: '#718096',
       marginTop: '5px',
     },
+    planRow: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '12px 0',
+      borderTop: '1px solid #e8e8e8',
+    },
+    planLabel: {
+      fontSize: '14px',
+      color: '#4a5568',
+    },
+    planBadgeFree: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      background: 'rgba(201,168,76,0.1)',
+      border: '1px solid rgba(201,168,76,0.35)',
+      color: '#9a7a28',
+      fontSize: '12px',
+      padding: '4px 10px',
+      borderRadius: '20px',
+      fontWeight: 600,
+    },
+    planBadgePlus: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      background: 'rgba(201,168,76,0.15)',
+      border: '1px solid rgba(201,168,76,0.5)',
+      color: '#7a5c10',
+      fontSize: '12px',
+      padding: '4px 10px',
+      borderRadius: '20px',
+      fontWeight: 600,
+    },
   }
 
   if (loading) {
@@ -377,6 +422,27 @@ export default function ProfilePage() {
               </div>
             )}
           </form>
+        </div>
+
+        {/* ── Plan ── */}
+        <div style={styles.card}>
+          <div style={styles.cardTitle}>Plan</div>
+          <div style={styles.cardSubtitle}>
+            Your current Harbour subscription.
+          </div>
+          <div style={styles.planRow}>
+            <span style={styles.planLabel}>Current plan</span>
+            <span style={isPlus ? styles.planBadgePlus : styles.planBadgeFree}>
+              ✦ {isPlus ? 'Harbour Plus' : 'Free'}
+            </span>
+          </div>
+          {!isPlus && (
+            <div style={{ marginTop: 16 }}>
+              <a href="/upgrade" style={styles.btn}>
+                See Harbour Plus →
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>
