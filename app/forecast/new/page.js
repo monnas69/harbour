@@ -638,7 +638,7 @@ export default function ForecastInputPage() {
               <p className="step-sub">
                 {forecastMode === 'traditional'
                   ? 'Set a spending target and we project whether your super will last.'
-                  : 'We'll calculate the maximum you can safely spend each year in retirement.'}
+                  : "We'll calculate the maximum you can safely spend each year in retirement."}
               </p>
 
               {/* Mode toggle */}
