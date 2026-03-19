@@ -4,9 +4,6 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 
-// ─── Contribution caps (current year — update 1 July each year) ──────────────
-const CONCESSIONAL_CAP = 30000;
-const NCC_CAP = 120000;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatCurrency = (val) => {
@@ -66,8 +63,10 @@ function ForecastInputInner() {
   const [targetHorizon, setTargetHorizon] = useState(90);
 
   // ─── ASFA values — loaded from config, fall back to known defaults ──────────
-  const [asfaComfortable, setAsfaComfortable] = useState(51000);
-  const [asfaModest,      setAsfaModest]      = useState(36000);
+  const [asfaComfortable,    setAsfaComfortable]    = useState(51000);
+  const [asfaModest,         setAsfaModest]         = useState(36000);
+  const [CONCESSIONAL_CAP,   setConcessionalCap]    = useState(30000);
+  const [NCC_CAP,            setNccCap]             = useState(120000);
 
   const [form, setForm] = useState({
     name: '',
@@ -95,11 +94,13 @@ function ForecastInputInner() {
         const { data } = await supabase
           .from('config')
           .select('key, value')
-          .in('key', ['asfa_comfortable_single', 'asfa_modest_single']);
+          .in('key', ['asfa_comfortable_single', 'asfa_modest_single', 'concessional_cap', 'non_concessional_cap']);
         if (data) {
           data.forEach(row => {
             if (row.key === 'asfa_comfortable_single') setAsfaComfortable(Number(row.value));
             if (row.key === 'asfa_modest_single')      setAsfaModest(Number(row.value));
+            if (row.key === 'concessional_cap')        setConcessionalCap(Number(row.value));
+            if (row.key === 'non_concessional_cap')    setNccCap(Number(row.value));
           });
         }
       } catch {
@@ -749,7 +750,7 @@ function ForecastInputInner() {
               <div className="field-group">
                 <label className="field-label">Salary sacrifice <span className="optional-tag">(optional)</span></label>
                 <div className="field-explainer">
-                  <strong>Salary sacrifice</strong> is extra super from your pre-tax salary — taxed at 15% on entry. Combined with SG, these count toward a <strong>concessional cap of {formatCurrency(CONCESSIONAL_CAP)}/yr</strong>.
+                  <strong>Salary sacrifice</strong> is extra super from your pre-tax salary — taxed at 15% on entry. Combined with SG, these count toward a <strong>concessional cap</strong>.
                 </div>
                 <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $10,000" value={form.salarySacrificeDisplay} onChange={e => handleSalarySacrifice(e.target.value)} onBlur={handleSalarySacrificeBlur} />
                 <p className="field-hint">Annual amount only — enter what you salary sacrifice per year.</p>
@@ -768,7 +769,7 @@ function ForecastInputInner() {
               <div className="field-group">
                 <label className="field-label">Non-concessional contributions <span className="optional-tag">(optional)</span></label>
                 <div className="field-explainer">
-                  <strong>Non-concessional contributions (NCC)</strong> are personal contributions from your after-tax savings — no tax on entry. Capped at <strong>{formatCurrency(NCC_CAP)}/yr</strong>.
+                  <strong>Non-concessional contributions (NCC)</strong> are personal contributions from your after-tax savings — no tax on entry. An annual cap applies.
                 </div>
                 <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $20,000" value={form.nccDisplay} onChange={e => handleNcc(e.target.value)} onBlur={handleNccBlur} />
                 <p className="field-hint">Annual amount you plan to contribute from your own savings.</p>
