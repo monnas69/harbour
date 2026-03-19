@@ -790,7 +790,7 @@ function ForecastInputInner() {
                   <div className="sg-icon">📅</div>
                   <div className="sg-text">
                     That's <strong>{yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''}</strong> until retirement.
-                    {parseInt(form.retirementAge) < 67 && <> Your Age Pension will start at <strong>age 67</strong>, {67 - parseInt(form.retirementAge)} year{67 - parseInt(form.retirementAge) !== 1 ? 's' : ''} later.</>}
+                    {parseInt(form.retirementAge) < 67 && <> Your Age Pension may start at <strong>age 67</strong>, {67 - parseInt(form.retirementAge)} year{67 - parseInt(form.retirementAge) !== 1 ? 's' : ''} later.</>}
                     {parseInt(form.retirementAge) >= 67 && <> You'll be eligible for the Age Pension from the day you retire.</>}
                   </div>
                 </div>
