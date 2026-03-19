@@ -1,5 +1,5 @@
 # HARBOUR — Product Build List
-**Version 1.5 · March 2026 · Confidential**
+**Version 1.6 · March 2026 · Confidential**
 
 *This document tracks all features, fixes, and deferred items for the Harbour MVP and beyond. Items are grouped by phase. Update status as work progresses.*
 
@@ -119,11 +119,45 @@
 | **Combined Age Pension calc (couples)** | *Assets test and deeming for couple — combined thresholds* | → To do |
 | **PDF export** | *Paid feature — forecast summary as downloadable PDF* | → To do |
 | **Forecast re-run prompt** | *Email via Loops when Centrelink rates update in March or September* | → To do |
+| **Safe spending forecast (reverse solver)** | *"How much can I safely spend?" mode — binary search reverse-solver finds max annual spending at conservative (90%), balanced (50%), and optimistic (10%) confidence levels to a user-set target age. Fully separate results view with headline, three spending bands, pension card, chart, and summary. Available to both authenticated and unauthenticated users.* | ✓ Done |
 | **Sustainable spending metric** | *Year-by-year simulation showing annual spend supportable to age 90 accounting for investment returns and increasing pension as balance draws down* | → To do |
 | **Adjustable assumptions** | *Let user tweak return rates, inflation, longevity target — longevity target paid feature* | → To do |
 | **Mobile responsive polish** | *Input and forecast screens reviewed and tested on iOS Safari* | → To do |
 | **Loops — existing user import** | *One-time CSV export from Supabase Auth, import into Loops contacts* | → To do |
-| **Retired user mode** | *Skip accumulation phase, handle Age Pension from current balance for users already past 67* | ○ Deferred |
+| **Retired user mode** | *Skip accumulation phase, handle Age Pension from current balance for users already past 67* | ✓ Done |
+
+---
+
+## Phase 3b — UX redesign & safe spending (March 2026 session)
+
+### New landing page & dual input flows
+
+| Item | Notes | Status |
+|------|-------|--------|
+| **Landing page rebuild** | *Full branded landing page replacing static redirect. "Are you already retired?" toggle (No—still working / Yes—already retired) sets context. Two CTA cards route to appropriate forecast mode. Feature pills, auth-aware nav, footer disclaimer.* | ✓ Done |
+| **Pre-retiree flow (6-step)** | *Unchanged 6-step form for users still working — age, super + contributions, retirement age, spending or horizon, confirm.* | ✓ Done |
+| **Retiree flow (4-step)** | *Simplified 4-step form for already-retired users. Steps: name + retired toggle → age + super balance → mode toggle + spending/horizon → confirm. Passes retirement_age = current_age and zeroes salary/contributions.* | ✓ Done |
+| **"Already retired?" toggle in form** | *Step 1 of both flows includes the retired/working toggle — accessible to logged-in users navigating directly to /forecast/new, not only from landing page.* | ✓ Done |
+| **URL param initialisation** | *?mode= and ?retired= URL params set initial form state. Suspense wrapper added for useSearchParams compatibility with Next.js App Router.* | ✓ Done |
+
+### Safe spending results
+
+| Item | Notes | Status |
+|------|-------|--------|
+| **Safe spending API route** | *POST /api/forecast/safe-spending — runs runSafeSpending() binary search, saves inputs with mode: 'safe_spending' and target_horizon for authenticated users.* | ✓ Done |
+| **Super balance stat cards on results** | *Three stat cards on safe spending results: Current super balance (gold), Projected super at retirement or Funds projected to last (blue, conditional on yearsToRetirement), Estimated Age Pension (green).* | ✓ Done |
+| **Conditional middle stat card** | *When retirement_age = current_age (already retired, yearsToRetirement = 0), replaces redundant "Projected super at retirement · 0 years of growth" with "Funds projected to last until" showing p50/p10/p90 depletion ages.* | ✓ Done |
+| **Safe spending results — unauthenticated** | *Full safe spending view in forecast/preview/page.js: headline amount, three spending bands (conservative/balanced/optimistic), pension card, chart, summary section.* | ✓ Done |
+| **Safe spending results — authenticated** | *Full safe spending view in forecast/[id]/page.js: same layout as preview. Mode detected via inputs.mode || 'traditional'. Previously always rendered traditional view regardless of mode.* | ✓ Done |
+| **Chart safe spending mode** | *Chart spending line uses safe_spending_balanced amount and labelled "Balanced safe spending" instead of "Spending target" when isSafeChart.* | ✓ Done |
+
+### Bug fixes & audit
+
+| Item | Notes | Status |
+|------|-------|--------|
+| **Fix: preview traditional view retiree card** | *preview/page.js traditional view lacked yearsToRetirement > 0 guard on gold stat card — always showed "Projected super at retirement · after 0 years of growth" for retirees. Fixed to show "Current super balance" when yearsToRetirement = 0, matching [id]/page.js behaviour.* | ✓ Done |
+| **Volatility calibration review** | *Audited return_volatility assumption against Chant West, SuperRatings, ASIC MoneySmart, and Morningstar AU balanced fund data. 12% is consistent with high-growth options; balanced funds run 8.5–10%. Recommended and confirmed change to 10% via admin console. Verified against live API — spread/median ratio confirms 10% is now active.* | ✓ Done |
+| **MoneySmart benchmark comparison** | *Ran four representative scenarios through both Harbour and a MoneySmart-equivalent deterministic model. Harbour median within −4% to +1% of MoneySmart on accumulation — divergence is theoretically correct volatility drag. Harbour materially extends MoneySmart: full drawdown phase, Centrelink integration, sequence-of-returns risk, safe spending reverse-solver.* | ✓ Done |
 
 ---
 
@@ -184,4 +218,4 @@
 
 ---
 
-*Harbour — Build List v1.5 — March 2026 — Confidential*
+*Harbour — Build List v1.6 — March 2026 — Confidential*
