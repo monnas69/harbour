@@ -657,6 +657,20 @@ function ForecastInputInner() {
                       </button>
                     ))}
                   </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <label className="field-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Or enter a custom age</label>
+                    <input
+                      className="field-input"
+                      type="number"
+                      inputMode="numeric"
+                      min="60"
+                      max="110"
+                      placeholder="e.g. 100"
+                      value={[85, 90, 95].includes(targetHorizon) ? '' : targetHorizon}
+                      onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v)) setTargetHorizon(v); }}
+                      style={{ maxWidth: '120px' }}
+                    />
+                  </div>
                   <p className="field-hint" style={{ marginBottom: '24px' }}>We'll return conservative, balanced, and optimistic spending estimates so you can see the full range.</p>
                 </>
               )}
@@ -916,6 +930,20 @@ function ForecastInputInner() {
                         <span className="horizon-label">{age === 85 ? 'Conservative' : age === 90 ? 'Standard' : 'Long-lived'}</span>
                       </button>
                     ))}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <label className="field-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Or enter a custom age</label>
+                    <input
+                      className="field-input"
+                      type="number"
+                      inputMode="numeric"
+                      min="60"
+                      max="110"
+                      placeholder="e.g. 100"
+                      value={[85, 90, 95].includes(targetHorizon) ? '' : targetHorizon}
+                      onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v)) setTargetHorizon(v); }}
+                      style={{ maxWidth: '120px' }}
+                    />
                   </div>
                   <p className="field-hint" style={{ marginBottom: '24px' }}>We'll return conservative, balanced, and optimistic spending estimates — so you can see the range.</p>
                 </>
