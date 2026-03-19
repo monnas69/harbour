@@ -1,0 +1,30 @@
+Section,Field Name,Key,Current Value,Unit / Format,Next Review,Source,Notes
+Age Pension — single homeowner,Base pension rate,pension_base_single,1020.60,$/fn,20 Sep 2026,servicesaustralia.gov.au,Updated 20 Mar & 20 Sep each year
+Age Pension — single homeowner,Pension supplement,pension_supplement_single,83.40,$/fn,20 Sep 2026,servicesaustralia.gov.au,Updated 20 Mar & 20 Sep each year
+Age Pension — single homeowner,Energy supplement,pension_energy_single,14.10,$/fn,20 Sep 2026,servicesaustralia.gov.au,Updated 20 Mar & 20 Sep each year
+Age Pension — single homeowner,Total maximum (auto),pension_total_auto,1118.10,$/fn (calculated),,,"Sum of base + supplement + energy — do NOT enter into admin, it auto-calculates"
+Assets test — single homeowner,Lower threshold,assets_lower_single_owner,301750,$,20 Sep 2026,servicesaustralia.gov.au,Updated 20 Mar & 20 Sep each year
+Assets test — single homeowner,Upper threshold (cut-off),assets_upper_single_owner,714500,$,20 Sep 2026,servicesaustralia.gov.au,Updated 20 Mar & 20 Sep each year
+Assets test — single homeowner,Taper rate,assets_taper_rate,3,%,$3/fn per $1000 above lower threshold,,Fixed by legislation — only change if Govt changes it
+Income test,Free area,income_free_area_single,218,$/fn,20 Sep 2026,servicesaustralia.gov.au,Updated 20 Mar & 20 Sep each year
+Income test,Reduction rate,income_reduction_rate,0.50,% (decimal — 0.50 = 50¢/dollar),,,"Fixed at 50% — only change if Govt changes it. Enter as 0.50, not 50"
+Deeming rates,Lower deeming rate,deeming_rate_lower,1.25,%,As announced,budget.gov.au,Enter as percent e.g. 1.25 not 0.0125
+Deeming rates,Lower rate threshold,deeming_threshold_single,64200,$,As announced,budget.gov.au,Assets up to this amount deemed at lower rate
+Deeming rates,Upper deeming rate,deeming_rate_upper,3.25,%,As announced,budget.gov.au,Enter as percent e.g. 3.25 not 0.0325
+ASFA retirement standards,Comfortable standard,asfa_comfortable_single,51000,$/yr,Jun 2026,asfa.asn.au,Updated quarterly — Mar/Jun/Sep/Dec. Check asfa.asn.au each quarter.
+ASFA retirement standards,Modest standard,asfa_modest_single,36000,$/yr,Jun 2026,asfa.asn.au,Updated quarterly — Mar/Jun/Sep/Dec. Check asfa.asn.au each quarter.
+Superannuation — ATO,Super Guarantee rate,sg_rate,12,%,Only if legislation changes,ato.gov.au,Currently 12% — next scheduled increase would require legislation
+Superannuation — ATO,Transfer Balance Cap,transfer_balance_cap,1900000,$,1 Jul 2026,ato.gov.au,Indexed to CPI — reviewed 1 July each year
+Superannuation — ATO,Concessional contribution cap,concessional_cap,30000,$/yr,1 Jul 2026,ato.gov.au,Indexed — reviewed 1 July each year
+Superannuation — ATO,Non-concessional contribution cap,non_concessional_cap,120000,$/yr,1 Jul 2026,ato.gov.au,Indexed — reviewed 1 July each year (4x concessional cap)
+Superannuation — ATO,Min drawdown rate under 65,drawdown_under_65,4,%,Only if legislation changes,ato.gov.au,Enter as percent e.g. 4 not 0.04
+Superannuation — ATO,Min drawdown rate 65–74,drawdown_65_74,5,%,Only if legislation changes,ato.gov.au,Enter as percent e.g. 5 not 0.05
+Superannuation — ATO,Min drawdown rate 75–79,drawdown_75_79,6,%,Only if legislation changes,ato.gov.au,Enter as percent e.g. 6 not 0.06
+Superannuation — ATO,Min drawdown rate 80–84,drawdown_80_84,7,%,Only if legislation changes,ato.gov.au,Enter as percent e.g. 7 not 0.07
+Superannuation — ATO,Min drawdown rate 85–89,drawdown_85_89,9,%,Only if legislation changes,ato.gov.au,Enter as percent e.g. 9 not 0.09
+Superannuation — ATO,Min drawdown rate 90+,drawdown_90_plus,11,%,Only if legislation changes,ato.gov.au,Enter as percent e.g. 11 not 0.11
+Simulation parameters,Accumulation phase return,return_accumulation,6.5,%,Annually (Jul),Internal,Model assumption — review annually. Enter as percent e.g. 6.5 not 0.065
+Simulation parameters,Retirement phase return,return_retirement,5.5,%,Annually (Jul),Internal,Model assumption — review annually. Enter as percent e.g. 5.5 not 0.055
+Simulation parameters,Annual volatility,return_volatility,12,%,Annually (Jul),Internal,Model assumption. Retirement phase uses 80% of this (9.6%). Enter as percent e.g. 12 not 0.12
+Simulation parameters,Inflation rate,inflation_rate,2.5,%,Annually (Jul),Internal / RBA,Model assumption — track RBA targets. Enter as percent e.g. 2.5 not 0.025
+Simulation parameters,Super fund fee rate,fee_rate,0.67,%,Annually (Jul),ASIC MoneySmart,ASIC industry average — update if ASIC publishes new benchmark. Enter as percent e.g. 0.67 not 0.0067
