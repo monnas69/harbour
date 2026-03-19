@@ -1,11 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '../lib/supabase';
 
 export default function HomePage() {
   const router = useRouter();
   const [retired, setRetired] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSignedIn(!!session);
+    });
+  }, []);
 
   const go = (mode) => {
     router.push(`/forecast/new?mode=${mode}&retired=${retired}`);
@@ -163,6 +172,15 @@ export default function HomePage() {
           padding: 0 24px 40px; font-size: 11px; color: rgba(138,155,176,0.4);
           line-height: 1.7; max-width: 600px; margin: 0 auto;
         }
+        .lp-footer-links {
+          display: flex; justify-content: center; gap: 20px;
+          margin-top: 12px; flex-wrap: wrap;
+        }
+        .lp-footer-links a {
+          color: rgba(138,155,176,0.5); text-decoration: none; font-size: 11px;
+          transition: color 0.2s;
+        }
+        .lp-footer-links a:hover { color: rgba(138,155,176,0.9); }
 
         @media (max-width: 640px) {
           .lp-nav { padding: 16px 20px; }
@@ -187,7 +205,7 @@ export default function HomePage() {
             Harbour
           </a>
           <div className="lp-nav-links">
-            <a href="/auth/login" className="lp-nav-link">Sign in</a>
+            {!signedIn && <a href="/auth/login" className="lp-nav-link">Sign in</a>}
             <a href="/dashboard" className="lp-nav-btn">Dashboard</a>
           </div>
         </nav>
@@ -206,7 +224,7 @@ export default function HomePage() {
 
           <p className="lp-subhead">
             Harbour projects your super, Age Pension, and safe spending in minutes —
-            using 1,000 simulated market scenarios. Free, no credit card.
+            using 1,000 simulated market scenarios.
           </p>
 
           {/* Step 1: Are you retired? */}
@@ -265,6 +283,11 @@ export default function HomePage() {
         <footer className="lp-footer">
           For general information only. Not financial advice. Harbour does not hold an AFSL.
           Always verify with Services Australia or a licensed financial adviser before making retirement decisions.
+          <div className="lp-footer-links">
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="mailto:hello@harbourapp.com.au">Contact</a>
+          </div>
         </footer>
       </div>
     </>
