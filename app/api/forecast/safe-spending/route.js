@@ -211,14 +211,16 @@ export async function PUT(request) {
   }
 
   const savedInputs = { ...inputs, mode: 'safe_spending', target_horizon: horizon };
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from('forecasts')
     .update({ name, inputs: savedInputs, outputs, config_version: new Date().toISOString() })
     .eq('id', forecast_id)
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .select('id')
+    .single();
 
-  if (updateError) {
-    console.error('Supabase update error:', updateError);
+  if (updateError || !updated) {
+    console.error('Supabase update error:', updateError, 'forecast_id:', forecast_id, 'user_id:', user.id);
     return Response.json({ error: 'Failed to update forecast' }, { status: 500 });
   }
 

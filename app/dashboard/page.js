@@ -277,7 +277,7 @@ export default function DashboardPage() {
                             e.preventDefault();
                             e.stopPropagation();
                             sessionStorage.setItem('harbour_rerun', JSON.stringify({ ...fc.inputs, name: fc.name, _forecast_id: fc.id }));
-                            router.push('/forecast/new');
+                            window.location.href = '/forecast/new';
                           }}
                         >
                           ↺
