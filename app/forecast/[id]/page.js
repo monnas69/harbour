@@ -660,12 +660,15 @@ const baseStyles = `
   @media (max-width: 680px) {
     .hf-nav { padding: 16px 20px; }
     .hf-nav-user { display: none; }
+    .hf-nav-right .hf-btn-outline:first-of-type { display: none; }
     .hf-page { padding: 24px 16px 60px; }
     .hf-stat-grid { grid-template-columns: 1fr; }
     .hf-title { font-size: 24px; }
     .hf-stat-value { font-size: 28px; }
+    .hf-chart-section { padding: 20px 16px; }
     .hf-chart-wrap { height: 240px; }
     .hf-summary-rows { grid-template-columns: 1fr; }
+    .hf-summary-section { padding: 20px 16px; }
     .hf-chart-legend { gap: 10px; }
   }
 `;

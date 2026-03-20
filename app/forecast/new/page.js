@@ -490,6 +490,14 @@ function ForecastInputInner() {
           .step-heading { font-size: 28px; }
           .spend-grid { grid-template-columns: 1fr; }
           .spend-divider { display: none; }
+          .review-row { flex-wrap: wrap; row-gap: 2px; }
+          .review-val { text-align: left; }
+        }
+
+        @media (max-width: 420px) {
+          .main { padding: 32px 16px; }
+          .step-heading { font-size: 24px; }
+          .preset-row { flex-direction: column; }
         }
       `}</style>
 
