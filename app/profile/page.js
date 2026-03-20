@@ -11,6 +11,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
   const [isPlus, setIsPlus] = useState(false)
+  const [portalLoading, setPortalLoading] = useState(false)
 
   // Display name
   const [displayName, setDisplayName] = useState('')
@@ -51,6 +52,19 @@ export default function ProfilePage() {
     }
     loadUser()
   }, [])
+
+  async function handleManageSubscription() {
+    setPortalLoading(true)
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } finally {
+      setPortalLoading(false)
+    }
+  }
 
   async function handleSaveName(e) {
     e.preventDefault()
@@ -441,6 +455,17 @@ export default function ProfilePage() {
               <a href="/upgrade" style={styles.btn}>
                 See Harbour Plus →
               </a>
+            </div>
+          )}
+          {isPlus && (
+            <div style={{ marginTop: 16 }}>
+              <button
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                style={{ ...styles.btn, ...(portalLoading ? styles.btnDisabled : {}), background: 'transparent', border: `1px solid ${GOLD}`, color: GOLD }}
+              >
+                {portalLoading ? 'Loading…' : 'Manage subscription →'}
+              </button>
             </div>
           )}
         </div>

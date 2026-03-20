@@ -111,7 +111,7 @@
 
 | Item | Notes | Status |
 |------|-------|--------|
-| **Stripe integration** | *Subscription billing — annual billing model preferred at ~$55/yr (Harbour Plus). Webhook sets is_plus = true on profiles table* | → To do |
+| **Stripe integration** | *Subscription billing — $55/yr (Harbour Plus). Checkout via /api/stripe/checkout, webhook at /api/stripe/webhook sets is_plus = true / false on profiles table. Upgrade page wired to Stripe. Currently using test keys — swap to live keys when Plus features are ready to ship* | ✓ Done |
 | **Paid tier gate — forecast limit** | *Free accounts capped at 3 saved forecasts. API returns FORECAST_LIMIT_REACHED (403) when exceeded. Plus users bypass limit via is_plus flag on profiles table* | ✓ Done |
 | **User tier management** | *profiles table live in Supabase — id, is_plus (bool), stripe_customer_id (nullable), created_at. RLS policies set. Auto-created on signup via trigger. is_plus read in /api/forecast and /profile* | ✓ Done |
 | **Pricing page** | *Live at /upgrade — Free vs Plus cards, $55/yr, feature comparison, FAQ. Stripe button shows "Coming soon" until payment integration complete. Already-Plus users see active state* | ✓ Done |
