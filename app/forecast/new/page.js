@@ -360,6 +360,7 @@ function ForecastInputInner() {
       const data = await res.json();
 
       if (data.id) {
+        router.refresh();
         router.push(`/forecast/${data.id}`);
         return;
       }
