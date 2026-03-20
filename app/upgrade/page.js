@@ -514,6 +514,8 @@ const styles = `
     .up-nav { padding: 16px 20px; }
     .up-page { padding: 40px 16px 60px; }
     .up-title { font-size: 28px; }
+    .up-card-price { font-size: 36px; }
     .up-cards { grid-template-columns: 1fr; }
+    .up-plus-notice { flex-wrap: wrap; }
   }
 `;

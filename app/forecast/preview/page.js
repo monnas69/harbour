@@ -447,14 +447,22 @@ const baseStyles = `
 
   @media (max-width: 680px) {
     .hf-nav { padding: 16px 20px; }
+    .hf-btn-outline { display: none; }
     .hf-page { padding: 24px 16px 60px; }
     .hf-stat-grid { grid-template-columns: 1fr; }
     .hf-title { font-size: 24px; }
     .hf-stat-value { font-size: 28px; }
+    .hf-chart-section { padding: 20px 16px; }
     .hf-chart-wrap { height: 240px; }
     .hf-summary-rows { grid-template-columns: 1fr; }
+    .hf-summary-section { padding: 20px 16px; }
     .hf-save-banner { padding: 14px 20px; }
     .hf-save-banner-inner { flex-direction: column; gap: 12px; }
+    .hf-save-banner-btns { flex-direction: column; width: 100%; }
+    .hf-save-banner-btns .hf-btn-gold,
+    .hf-save-banner-btns .hf-btn-outline-light { width: 100%; text-align: center; }
     .hf-bottom-cta { padding: 24px 20px; }
+    .hf-bottom-cta-btns { flex-direction: column; align-items: stretch; }
+    .hf-cta-btn-gold, .hf-cta-btn-outline { width: 100%; }
   }
 `;

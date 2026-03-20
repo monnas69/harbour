@@ -765,8 +765,14 @@ const styles = `
     .hd-user-chip span { display: none; }
     .hd-page { padding: 24px 16px 60px; }
     .hd-title { font-size: 24px; }
-    .hd-card-stats { display: none; }
-    .hd-card-actions { padding-right: 12px; }
-    .hd-upgrade-banner { flex-direction: column; }
+    .hd-card-main { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 16px; }
+    .hd-card-stats { gap: 14px; }
+    .hd-card-stat { text-align: left; }
+    .hd-card-stat-value { font-size: 14px; }
+    .hd-card-stat-label { font-size: 9px; }
+    .hd-card-actions { padding-right: 12px; align-self: flex-start; padding-top: 14px; }
+    .hd-card-action-btn { width: 40px; height: 40px; }
+    .hd-upgrade-banner { flex-direction: column; align-items: flex-start; }
+    .hd-account-row { flex-wrap: wrap; gap: 4px 8px; }
   }
 `;
