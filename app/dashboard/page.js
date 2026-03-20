@@ -106,9 +106,6 @@ export default function DashboardPage() {
     return new Date(forecast.created_at) < new Date(latestConfig);
   };
 
-  // Any stale forecasts?
-  const hasStale = forecasts.some(isStale);
-
   // User display name — prefer profile name, fall back to email prefix
   const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'there';
   const userInitial = displayName[0].toUpperCase();
@@ -167,18 +164,6 @@ export default function DashboardPage() {
             <div className="hd-sub">Manage your saved forecasts and account settings.</div>
           </div>
 
-          {/* Rate change notice — only shown if stale forecasts exist */}
-          {hasStale && latestConfig && (
-            <div className="hd-rate-notice">
-              <div className="hd-rate-notice-text">
-                <strong>Centrelink rates updated {fmtDateLong(latestConfig)}.</strong>{' '}
-                One or more of your saved forecasts were generated before this change — re-run them to see updated Age Pension figures.
-              </div>
-              <button className="hd-rate-notice-btn" onClick={() => router.push('/forecast/new')}>
-                Re-run forecast ›
-              </button>
-            </div>
-          )}
 
           {/* Upgrade banner — shown to free users only */}
           {!isPlus && (
@@ -244,7 +229,7 @@ export default function DashboardPage() {
                             <span className="hd-meta-sep">·</span>
                             <span>Saved {fmtDate(fc.created_at)}</span>
                             {stale && (
-                              <span className="hd-stale-badge">Rates updated — re-run</span>
+                              <span className="hd-stale-badge">Data updated — delete and run a new forecast</span>
                             )}
                           </div>
                         </div>
@@ -481,31 +466,6 @@ const styles = `
 
   .hd-title em { color: #e8cc88; font-style: italic; }
   .hd-sub { font-size: 14px; color: #8a9bb0; font-weight: 300; }
-
-  /* Rate notice */
-  .hd-rate-notice {
-    background: rgba(192,97,74,0.08);
-    border: 1px solid rgba(192,97,74,0.2);
-    border-left: 3px solid #e08878;
-    border-radius: 0 6px 6px 0;
-    padding: 14px 18px; margin-bottom: 20px;
-    display: flex; justify-content: space-between;
-    align-items: center; gap: 12px; flex-wrap: wrap;
-    font-size: 13px;
-  }
-
-  .hd-rate-notice-text { color: #8a9bb0; line-height: 1.5; }
-  .hd-rate-notice-text strong { color: #f5f0e8; }
-
-  .hd-rate-notice-btn {
-    background: transparent;
-    border: 1px solid rgba(224,136,120,0.4);
-    color: #e08878; font-family: 'DM Sans', sans-serif;
-    font-size: 12px; padding: 7px 14px; border-radius: 3px;
-    cursor: pointer; white-space: nowrap; flex-shrink: 0;
-    transition: all 0.2s;
-  }
-  .hd-rate-notice-btn:hover { background: rgba(192,97,74,0.1); }
 
   /* Upgrade banner */
   .hd-upgrade-banner {
