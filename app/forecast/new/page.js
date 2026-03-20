@@ -60,6 +60,7 @@ function ForecastInputInner() {
   const [loading,       setLoading]       = useState(false);
   const [error,         setError]         = useState('');
   const [isRerun,       setIsRerun]       = useState(false);
+  const [rerunId,       setRerunId]       = useState(null);
   const [forecastMode,  setForecastMode]  = useState(urlMode);
   const [targetHorizon, setTargetHorizon] = useState(90);
 
@@ -144,6 +145,7 @@ function ForecastInputInner() {
         spendingFortnightlyDisplay: spendingFn      ? formatCurrency(spendingFn)      : '',
         disclaimerAccepted: false,
       });
+      if (inputs._forecast_id) setRerunId(inputs._forecast_id);
       setIsRerun(true);
       setStep(totalSteps);
     } catch {
@@ -342,9 +344,9 @@ function ForecastInputInner() {
       }
 
       const res = await fetch(endpoint, {
-        method: 'POST',
+        method: rerunId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(rerunId ? { ...payload, forecast_id: rerunId } : payload),
       });
 
       if (!res.ok) {
