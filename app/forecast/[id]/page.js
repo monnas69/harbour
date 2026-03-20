@@ -318,7 +318,6 @@ export default function ForecastResultPage() {
                   Age <span>{currentAge}</span> · Super balance <span>{fmtFull(superBalance)}</span> · Retirement age <span>{retirementAge}</span> · Target age <span>{targetHorizon}</span> · Generated <span>{createdAt}</span>
                 </div>
               </div>
-              <button className="hf-recalc-btn" onClick={() => router.push('/forecast/new')}>✎ Adjust inputs</button>
             </div>
 
             <div className="hf-real-dollars-notice">
@@ -465,7 +464,6 @@ export default function ForecastResultPage() {
                 Age <span>{currentAge}</span> · Super balance <span>{fmtFull(superBalance)}</span> · Target retirement age <span>{retirementAge}</span> · Generated <span>{createdAt}</span>
               </div>
             </div>
-            <button className="hf-recalc-btn" onClick={() => router.push('/forecast/new')}>✎ Adjust inputs</button>
           </div>
 
           {/* Today's dollars notice */}
@@ -612,8 +610,6 @@ const baseStyles = `
   .hf-title em { color: #e8cc88; font-style: italic; }
   .hf-meta { font-size: 13px; color: #8a9bb0; margin-top: 6px; font-weight: 300; }
   .hf-meta span { color: #f5f0e8; }
-  .hf-recalc-btn { background: transparent; border: 1px solid rgba(201,168,76,0.2); color: #8a9bb0; font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 8px 16px; border-radius: 3px; cursor: pointer; transition: all 0.2s; }
-  .hf-recalc-btn:hover { border-color: #c9a84c; color: #c9a84c; }
 
   .hf-real-dollars-notice { background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.2); border-radius: 6px; padding: 10px 16px; margin-bottom: 24px; font-size: 13px; color: #8a9bb0; line-height: 1.5; }
   .hf-real-dollars-notice strong { color: #c9a84c; }
