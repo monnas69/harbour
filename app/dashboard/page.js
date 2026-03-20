@@ -229,7 +229,6 @@ export default function DashboardPage() {
                     key={fc.id}
                     className="hd-forecast-card"
                     href={`/forecast/${fc.id}`}
-                    onClick={e => { e.preventDefault(); router.push(`/forecast/${fc.id}`); }}
                   >
                     <div className="hd-card-inner">
                       <div className={`hd-card-accent${stale ? ' stale' : ''}`} />
