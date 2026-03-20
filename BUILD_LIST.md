@@ -1,5 +1,5 @@
 # HARBOUR — Product Build List
-**Version 1.6 · March 2026 · Confidential**
+**Version 1.7 · March 2026 · Confidential**
 
 *This document tracks all features, fixes, and deferred items for the Harbour MVP and beyond. Items are grouped by phase. Update status as work progresses.*
 
@@ -63,7 +63,7 @@
 | **Admin config page (Next.js)** | *Minimal white theme, flat tables, click-to-edit inline, last updated per row. Live at /admin* | ✓ Done |
 | **Admin API route** | *POST /api/admin/config — saves config to Supabase via service role key* | ✓ Done |
 | **Admin authentication** | *Protected by ADMIN_EMAIL env variable* | ✓ Done |
-| **Stale forecast detection** | *Dashboard shows rate-change notice when forecasts predate latest config update* | ✓ Done |
+| **Stale forecast detection** | *Stale forecasts (created before latest config update) show an inline badge on the forecast card: "Data updated — delete and run a new forecast". Top-level rate-change banner removed.* | ✓ Done |
 | **Concessional & NCC caps in admin** | *concessional_cap and non_concessional_cap editable via admin dashboard* | ✓ Done |
 | **Fee rate in admin** | *fee_rate config row — add via SQL: `INSERT INTO config (key, value, label, section) VALUES ('fee_rate', 0.67, 'Super fund fee rate (% p.a.)', 'model')`* | ✓ Done |
 
@@ -114,7 +114,7 @@
 | **Stripe integration** | *Subscription billing — $55/yr (Harbour Plus). Checkout via /api/stripe/checkout, webhook at /api/stripe/webhook sets is_plus = true / false on profiles table. Upgrade page wired to Stripe. Currently using test keys — swap to live keys when Plus features are ready to ship* | ✓ Done |
 | **Paid tier gate — forecast limit** | *Free accounts capped at 3 saved forecasts. API returns FORECAST_LIMIT_REACHED (403) when exceeded. Plus users bypass limit via is_plus flag on profiles table* | ✓ Done |
 | **User tier management** | *profiles table live in Supabase — id, is_plus (bool), stripe_customer_id (nullable), created_at. RLS policies set. Auto-created on signup via trigger. is_plus read in /api/forecast and /profile* | ✓ Done |
-| **Pricing page** | *Live at /upgrade — Free vs Plus cards, $55/yr, feature comparison, FAQ. Stripe button shows "Coming soon" until payment integration complete. Already-Plus users see active state* | ✓ Done |
+| **Pricing page** | *Live at /upgrade — Free vs Plus cards, $55/yr, feature comparison, FAQ. Stripe button replaced with disabled "Coming soon" button and hint text. Already-Plus users see active state* | ✓ Done |
 | **Partner / couples details** | *Additional input step — partner age, super, salary* | → To do |
 | **Combined Age Pension calc (couples)** | *Assets test and deeming for couple — combined thresholds* | → To do |
 | **PDF export** | *Paid feature — forecast summary as downloadable PDF* | → To do |
@@ -214,9 +214,9 @@
 - Profile page at /profile allows users to update display name, email, and password. Display name stored in Supabase user_metadata.display_name and used in dashboard greeting. Plan status (Free / Harbour Plus) shown via is_plus field from profiles table.
 - profiles table: id (uuid, FK to auth.users), is_plus (bool, default false, not null), stripe_customer_id (text, nullable), created_at (timestamptz). RLS: users can read/update own row only. Auto-created on signup via Supabase trigger.
 - Forecast limit: free users capped at 3 saved forecasts. /api/forecast checks profiles.is_plus — if false, counts existing forecasts and returns 403 FORECAST_LIMIT_REACHED at ≥3. Plus users bypass the check entirely.
-- /upgrade page at /upgrade — pricing page with Free vs Plus comparison. Stripe buy button disabled ("Coming soon") until Stripe integration is complete. Email hello@harbourapp.com.au shown for early Plus access.
+- /upgrade page at /upgrade — pricing page with Free vs Plus comparison. Stripe checkout removed; Plus card shows disabled "Coming soon" button with hint text. Already-Plus users see active state.
 - Delete account is fully wired — service role key deletes user from Supabase Auth, cascade delete removes all forecasts automatically.
 
 ---
 
-*Harbour — Build List v1.6 — March 2026 — Confidential*
+*Harbour — Build List v1.7 — March 2026 — Confidential*
