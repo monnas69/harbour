@@ -2,8 +2,6 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-
 // Supabase admin client — bypasses RLS to update is_plus
 function getAdminClient() {
   return createClient(
@@ -29,6 +27,7 @@ async function setUserPlusByCustomer(stripeCustomerId, isPlus) {
 }
 
 export async function POST(request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')
 
