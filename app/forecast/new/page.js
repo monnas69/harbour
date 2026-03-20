@@ -127,7 +127,7 @@ function ForecastInputInner() {
       const spendingAnnual  = inputs.annual_spending  || '';
       const spendingFn      = spendingAnnual ? annualToFortnightly(spendingAnnual) : '';
       setForm({
-        name:                       inputs.name              || '',
+        name:                       (inputs.name != null ? String(inputs.name) : '') ,
         currentAge:                 String(inputs.current_age    || ''),
         superBalance:               inputs.super_balance     || '',
         superBalanceDisplay:        inputs.super_balance     ? formatCurrency(inputs.super_balance)     : '',
@@ -474,7 +474,8 @@ function ForecastInputInner() {
         .review-row:last-child { border-bottom: none; }
         .review-key { color: var(--muted); font-weight: 400; }
         .review-val { font-weight: 600; color: var(--navy); text-align: right; }
-        .review-section-head { background: var(--cream2); padding: 8px 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+        .review-section-head { background: var(--cream2); padding: 8px 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+        .review-edit-btn { font-size: 11px; font-weight: 500; color: var(--gold); background: none; border: none; cursor: pointer; letter-spacing: 0; text-transform: none; padding: 0; font-family: 'DM Sans', sans-serif; }
 
         .disclaimer-box { background: rgba(13,31,53,0.04); border: 1.5px solid var(--cream2); border-radius: 10px; padding: 20px 24px; margin-bottom: 24px; }
         .disclaimer-box.accepted { border-color: rgba(201,168,76,0.5); background: rgba(201,168,76,0.05); }
@@ -873,12 +874,12 @@ function ForecastInputInner() {
               <p className="step-sub">Check your details below, read the disclaimer, then run your forecast.</p>
 
               <div className="review-card">
-                <div className="review-section-head">Personal</div>
+                <div className="review-section-head">Personal <button className="review-edit-btn" onClick={() => { setError(''); setStep(1); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Name</span><span className="review-val">{form.name}</span></div>
                 <div className="review-row"><span className="review-key">Current age</span><span className="review-val">{form.currentAge}</span></div>
-                <div className="review-section-head">Your balance</div>
+                <div className="review-section-head">Your balance <button className="review-edit-btn" onClick={() => { setError(''); setStep(2); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Super / investment balance</span><span className="review-val">{formatCurrency(form.superBalance)}</span></div>
-                <div className="review-section-head">Your goal</div>
+                <div className="review-section-head">Your goal <button className="review-edit-btn" onClick={() => { setError(''); setStep(3); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Forecast type</span><span className="review-val">{forecastMode === 'safe_spending' ? 'Safe Spending' : 'How long will my money last?'}</span></div>
                 {forecastMode === 'traditional'
                   ? <div className="review-row"><span className="review-key">Annual spending</span><span className="review-val">{formatCurrency(form.spendingFortnightly)}/fn · {formatCurrency(form.spendingAnnual)}/yr</span></div>
@@ -1019,16 +1020,16 @@ function ForecastInputInner() {
               )}
 
               <div className="review-card">
-                <div className="review-section-head">Personal</div>
+                <div className="review-section-head">Personal <button className="review-edit-btn" onClick={() => { setError(''); setStep(1); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Name</span><span className="review-val">{form.name}</span></div>
                 <div className="review-row"><span className="review-key">Current age</span><span className="review-val">{form.currentAge}</span></div>
-                <div className="review-section-head">Superannuation</div>
+                <div className="review-section-head">Superannuation <button className="review-edit-btn" onClick={() => { setError(''); setStep(3); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Current balance</span><span className="review-val">{formatCurrency(form.superBalance)}</span></div>
                 {form.salary && <div className="review-row"><span className="review-key">Annual salary</span><span className="review-val">{formatCurrency(form.salary)}</span></div>}
                 {sgAmount !== null && <div className="review-row"><span className="review-key">SG contributions (after 15% tax)</span><span className="review-val">{formatCurrency(sgAmount * 0.85)}/fn · {formatCurrency(sgAnnual(form.salary) * 0.85)}/yr</span></div>}
                 {form.salarySacrifice && <div className="review-row"><span className="review-key">Salary sacrifice (after 15% tax)</span><span className="review-val">{formatCurrency(parseFloat(form.salarySacrifice) * 0.85)}/yr</span></div>}
                 {form.ncc && <div className="review-row"><span className="review-key">Non-concessional contributions</span><span className="review-val">{formatCurrency(form.ncc)}/yr</span></div>}
-                <div className="review-section-head">Retirement plan</div>
+                <div className="review-section-head">Retirement plan <button className="review-edit-btn" onClick={() => { setError(''); setStep(4); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Forecast type</span><span className="review-val">{forecastMode === 'safe_spending' ? 'Safe Spending' : 'Traditional'}</span></div>
                 <div className="review-row"><span className="review-key">Target retirement age</span><span className="review-val">{form.retirementAge}</span></div>
                 <div className="review-row"><span className="review-key">Age Pension eligibility</span><span className="review-val">Age 67</span></div>
