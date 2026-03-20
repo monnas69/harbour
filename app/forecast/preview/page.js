@@ -77,14 +77,18 @@ export default function ForecastPreviewPage() {
     const p90  = outputs.p90  || [];
     const inflation = 0.025;
     const currentAge = inputs.current_age;
+    const isSafe = (inputs.mode || 'traditional') === 'safe_spending';
 
     // Deflate curves to today's dollars
     const p10Real = deflateCurve(p10, ages, currentAge, inflation);
     const p50Real = deflateCurve(p50, ages, currentAge, inflation);
     const p90Real = deflateCurve(p90, ages, currentAge, inflation);
 
-    // Spending already in today's dollars
-    const spendingLine = ages.map(() => inputs.annual_spending || 0);
+    // Spending already in today's dollars; safe spending mode uses balanced amount
+    const spendingAmt = isSafe
+      ? (outputs.safe_spending_balanced || 0)
+      : (inputs.annual_spending || 0);
+    const spendingLine = ages.map(() => spendingAmt);
 
     loadChartJs().then((Chart) => {
       if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; }
@@ -103,7 +107,7 @@ export default function ForecastPreviewPage() {
             { label: 'Best case (90th %ile)', data: p90Real, borderColor: 'rgba(91,158,110,0.75)', borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, fill: false, tension: 0.4 },
             { label: 'Median (50th %ile)', data: p50Real, borderColor: '#c9a84c', borderWidth: 2.5, pointRadius: ages.map((a) => (a === pensionAge ? 5 : 0)), pointBackgroundColor: '#c9a84c', fill: false, tension: 0.4 },
             { label: 'Worst case (10th %ile)', data: p10Real, borderColor: 'rgba(192,97,74,0.75)', borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, fill: false, tension: 0.4 },
-            { label: 'Spending target (today\'s $)', data: spendingLine, borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderDash: [3, 6], pointRadius: 0, fill: false, tension: 0 },
+            { label: isSafe ? 'Balanced safe spending' : 'Spending target (today\'s $)', data: spendingLine, borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderDash: [3, 6], pointRadius: 0, fill: false, tension: 0 },
           ],
         },
         options: {
@@ -197,6 +201,9 @@ export default function ForecastPreviewPage() {
   const superBalance   = inputs.super_balance;
   const retirementAge  = inputs.retirement_age;
   const annualSpending = inputs.annual_spending;
+  const forecastMode   = inputs.mode || 'traditional';
+  const isSafeSpending = forecastMode === 'safe_spending';
+  const targetHorizon  = outputs.target_horizon || inputs.target_horizon || 90;
   const inflation      = 0.025;
 
   const yearsToRetirement = retirementAge - currentAge;
@@ -213,6 +220,209 @@ export default function ForecastPreviewPage() {
 
   const pensionFortnightly = pensionAnnual ? Math.round(pensionAnnual / 26) : null;
 
+  // Safe spending amounts (already in today's dollars — engine computes them as such)
+  const safeConservative = outputs.safe_spending_conservative;
+  const safeBalanced     = outputs.safe_spending_balanced;
+  const safeAggressive   = outputs.safe_spending_aggressive;
+
+  const navSection = (
+    <>
+      {/* Nav */}
+      <nav className="hf-nav">
+        <a href="/" className="hf-logo">
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="17" stroke="#c9a84c" strokeWidth="1"/>
+            <line x1="18" y1="7" x2="18" y2="29" stroke="#c9a84c" strokeWidth="1.5"/>
+            <line x1="11" y1="14" x2="25" y2="14" stroke="#c9a84c" strokeWidth="1.5"/>
+            <path d="M11 29 Q18 24 25 29" stroke="#c9a84c" strokeWidth="1.5" fill="none"/>
+          </svg>
+          <span className="hf-logo-text">Harbour</span>
+        </a>
+        <div className="hf-nav-right">
+          <button className="hf-btn-outline" onClick={() => router.push('/forecast/new')}>✎ New forecast</button>
+          <button className="hf-btn-gold" onClick={() => router.push('/auth/login')}>Save this forecast →</button>
+        </div>
+      </nav>
+
+      {/* Save banner */}
+      <div className="hf-save-banner">
+        <div className="hf-save-banner-inner">
+          <div>
+            <div className="hf-save-banner-title">Save your forecast for free</div>
+            <div className="hf-save-banner-sub">Create a free account to save this forecast, track it over time, and re-run it when rates change.</div>
+          </div>
+          <div className="hf-save-banner-btns">
+            <button className="hf-btn-gold" onClick={() => router.push('/auth/login?mode=signup')}>Create free account</button>
+            <button className="hf-btn-outline-light" onClick={() => router.push('/auth/login')}>Sign in</button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const ctaSection = (
+    <>
+      <div className="hf-bottom-cta">
+        <div className="hf-bottom-cta-title">Want to save this forecast?</div>
+        <div className="hf-bottom-cta-sub">Create a free Harbour account to save your forecast, re-run it when Centrelink rates change, and track your progress over time.</div>
+        <div className="hf-bottom-cta-btns">
+          <button className="hf-cta-btn-gold" onClick={() => router.push('/auth/login?mode=signup')}>Create free account</button>
+          <button className="hf-cta-btn-outline" onClick={() => router.push('/forecast/new')}>Run another forecast</button>
+        </div>
+      </div>
+      <div className="hf-disclaimer">
+        This forecast is for general information purposes only and does not constitute financial advice. Results are projections based on modelled assumptions and are not guaranteed. Centrelink rules and superannuation laws change regularly — always verify your personal entitlements with Services Australia or a licensed financial adviser before making retirement decisions.
+      </div>
+    </>
+  );
+
+  // ── Safe Spending results view ─────────────────────────────────────────────
+  if (isSafeSpending) {
+    return (
+      <>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+          ${baseStyles}
+          ${safeSpendingStyles}
+        `}</style>
+
+        <div className="hf-root">
+          {navSection}
+
+          <div className="hf-page">
+            <div className="hf-header">
+              <div>
+                <h1 className="hf-title">{name ? `${name}'s` : 'Your'} <em>Safe Spending Forecast</em></h1>
+                <div className="hf-meta">
+                  Age <span>{currentAge}</span> · Super balance <span>{fmtFull(superBalance)}</span> · Retirement age <span>{retirementAge}</span> · Target age <span>{targetHorizon}</span>
+                </div>
+              </div>
+              <button className="hf-recalc-btn" onClick={() => router.push('/forecast/new')}>✎ Adjust inputs</button>
+            </div>
+
+            <div className="hf-real-dollars-notice">
+              These spending amounts are in <strong>today's dollars</strong> — the engine adjusts for 2.5% p.a. inflation internally so you can act on these numbers now.
+            </div>
+
+            {/* Balance stat cards */}
+            <div className="hf-stat-grid">
+              <div className="hf-stat-card hf-stat-gold">
+                <div className="hf-stat-label">Current super balance</div>
+                <div className="hf-stat-value gold">{fmt(superBalance)}</div>
+                <div className="hf-stat-sub">Today · age {currentAge}<br />starting point for this forecast</div>
+              </div>
+              {yearsToRetirement > 0 ? (
+                <div className="hf-stat-card hf-stat-blue">
+                  <div className="hf-stat-label">Projected super at retirement</div>
+                  <div className="hf-stat-value blue">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
+                  <div className="hf-stat-sub">Median estimate at age {retirementAge} · in today's dollars<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
+                </div>
+              ) : (
+                <div className="hf-stat-card hf-stat-blue">
+                  <div className="hf-stat-label">Funds projected to last until</div>
+                  <div className="hf-stat-value blue">{fmtAge(fundsLastP50)}</div>
+                  <div className="hf-stat-sub">Median scenario at balanced spending<br />Best case {fmtAge(fundsLastP90)} · Worst case {fmtAge(fundsLastP10)}</div>
+                </div>
+              )}
+              <div className="hf-stat-card hf-stat-green">
+                <div className="hf-stat-label">Estimated Age Pension</div>
+                <div className="hf-stat-value green" style={{ fontSize: pensionAnnual === 0 ? '22px' : undefined }}>
+                  {pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible at 67'}
+                </div>
+                <div className="hf-stat-sub">
+                  {pensionAnnual > 0
+                    ? <>{fmtFull(pensionFortnightly)} per fortnight from age 67<br />factored into safe spending amounts above</>
+                    : pensionEligibleFromAge
+                    ? <>Projected balance exceeds threshold at 67<br />Eligible from approximately <strong style={{ color: '#7ec896' }}>age {pensionEligibleFromAge}</strong> as balance reduces</>
+                    : <>Projected balance exceeds the assets or income test threshold</>
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Safe spending headline */}
+            <div className="ss-headline">
+              <div className="ss-headline-label">Balanced safe spending · Age {targetHorizon} target</div>
+              <div className="ss-headline-value">{safeBalanced ? fmtFull(safeBalanced) : '—'}<span className="ss-headline-freq"> / year</span></div>
+              <div className="ss-headline-sub">
+                {safeBalanced ? fmtFull(Math.round(safeBalanced / 26)) : '—'} per fortnight · 50 % probability of funds lasting to age {targetHorizon}
+              </div>
+            </div>
+
+            {/* Three spending bands */}
+            <div className="ss-band-grid">
+              <div className="ss-band-card ss-band-conservative">
+                <div className="ss-band-label">Conservative</div>
+                <div className="ss-band-value">{safeConservative ? fmtFull(safeConservative) : '—'}</div>
+                <div className="ss-band-freq">{safeConservative ? fmtFull(Math.round(safeConservative / 26)) + ' / fortnight' : ''}</div>
+                <div className="ss-band-prob">90 % probability funds last to age {targetHorizon}</div>
+              </div>
+              <div className="ss-band-card ss-band-balanced">
+                <div className="ss-band-label">Balanced</div>
+                <div className="ss-band-value">{safeBalanced ? fmtFull(safeBalanced) : '—'}</div>
+                <div className="ss-band-freq">{safeBalanced ? fmtFull(Math.round(safeBalanced / 26)) + ' / fortnight' : ''}</div>
+                <div className="ss-band-prob">50 % probability funds last to age {targetHorizon}</div>
+              </div>
+              <div className="ss-band-card ss-band-aggressive">
+                <div className="ss-band-label">Optimistic</div>
+                <div className="ss-band-value">{safeAggressive ? fmtFull(safeAggressive) : '—'}</div>
+                <div className="ss-band-freq">{safeAggressive ? fmtFull(Math.round(safeAggressive / 26)) + ' / fortnight' : ''}</div>
+                <div className="ss-band-prob">10 % probability funds last to age {targetHorizon}</div>
+              </div>
+            </div>
+
+            {/* Pension card */}
+            <div className="ss-pension-card">
+              <div className="ss-pension-icon">⚓</div>
+              <div>
+                <div className="ss-pension-title">Age Pension included in these estimates</div>
+                <div className="ss-pension-body">
+                  {pensionAnnual > 0
+                    ? <>An estimated Age Pension of <strong>{fmtFull(Math.round(pensionAnnual / 100) * 100)} per year</strong> ({fmtFull(pensionFortnightly)} / fortnight) from age 67 is factored into all three spending bands above.</>
+                    : pensionEligibleFromAge
+                    ? <>Your projected balance is too high for the Age Pension at 67. It's expected to become payable from approximately <strong>age {pensionEligibleFromAge}</strong> as your balance reduces — and is reflected in the projections above.</>
+                    : <>At your projected balance level, no Age Pension entitlement is included in this forecast.</>
+                  }
+                </div>
+              </div>
+            </div>
+
+            {/* Chart — portfolio balance at balanced spending */}
+            <div className="hf-chart-section">
+              <div className="hf-chart-top">
+                <div className="hf-chart-title">Portfolio balance at balanced spending ({safeBalanced ? fmtFull(safeBalanced) : '—'}/yr)</div>
+                <div className="hf-chart-legend">
+                  <div className="hf-legend-item"><div className="hf-legend-line" style={{ borderTop: '2px dashed #7ec896' }} /><span style={{ color: '#7ec896' }}>Best case (90th %ile)</span></div>
+                  <div className="hf-legend-item"><div className="hf-legend-line" style={{ background: '#c9a84c', height: 2 }} /><span style={{ color: '#c9a84c' }}>Median (50th %ile)</span></div>
+                  <div className="hf-legend-item"><div className="hf-legend-line" style={{ borderTop: '2px dashed #e08878' }} /><span style={{ color: '#e08878' }}>Worst case (10th %ile)</span></div>
+                </div>
+              </div>
+              <div className="hf-chart-wrap"><canvas ref={chartRef} /></div>
+              <div className="hf-chart-note">Balanced spending of {safeBalanced ? fmtFull(safeBalanced) : '—'}/yr · all values in today's dollars · 1,000 simulated scenarios · Single homeowner</div>
+            </div>
+
+            {/* Summary */}
+            <div className="hf-summary-section">
+              <div className="hf-summary-label">What this forecast shows</div>
+              <div className="hf-summary-text">
+                With a super balance of <strong>{fmtFull(superBalance)}</strong> at age <strong>{currentAge}</strong> and a target retirement age of <strong>{retirementAge}</strong>, the balanced safe spending estimate is <strong>{safeBalanced ? fmtFull(safeBalanced) + ' per year' : '—'}</strong> in today's dollars — the level at which the median Monte Carlo scenario exhausts funds at age <strong>{targetHorizon}</strong>. The conservative estimate of <strong>{safeConservative ? fmtFull(safeConservative) + '/yr' : '—'}</strong> gives a 90 % chance of funds lasting to age {targetHorizon}, while the optimistic estimate of <strong>{safeAggressive ? fmtFull(safeAggressive) + '/yr' : '—'}</strong> carries a 10 % chance.
+                {pensionAnnual > 0 && <> The Age Pension ({fmtFull(Math.round(pensionAnnual / 100) * 100)}/yr from age 67) supplements these drawdowns and is fully incorporated in the calculation.</>}
+              </div>
+              <div className="hf-summary-rows">
+                <div className="hf-summary-row"><div className="hf-summary-row-label">Conservative · 90 % confidence</div><div className="hf-summary-row-val green">{safeConservative ? fmtFull(safeConservative) : '—'}</div></div>
+                <div className="hf-summary-row"><div className="hf-summary-row-label">Balanced · 50 % confidence</div><div className="hf-summary-row-val gold">{safeBalanced ? fmtFull(safeBalanced) : '—'}</div></div>
+                <div className="hf-summary-row"><div className="hf-summary-row-label">Optimistic · 10 % confidence</div><div className="hf-summary-row-val red">{safeAggressive ? fmtFull(safeAggressive) : '—'}</div></div>
+              </div>
+            </div>
+
+            {ctaSection}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // ── Traditional results view ───────────────────────────────────────────────
   return (
     <>
       <style>{`
@@ -222,36 +432,7 @@ export default function ForecastPreviewPage() {
 
       <div className="hf-root">
 
-        {/* Nav */}
-        <nav className="hf-nav">
-          <a href="/" className="hf-logo">
-            <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
-              <circle cx="18" cy="18" r="17" stroke="#c9a84c" strokeWidth="1"/>
-              <line x1="18" y1="7" x2="18" y2="29" stroke="#c9a84c" strokeWidth="1.5"/>
-              <line x1="11" y1="14" x2="25" y2="14" stroke="#c9a84c" strokeWidth="1.5"/>
-              <path d="M11 29 Q18 24 25 29" stroke="#c9a84c" strokeWidth="1.5" fill="none"/>
-            </svg>
-            <span className="hf-logo-text">Harbour</span>
-          </a>
-          <div className="hf-nav-right">
-            <button className="hf-btn-outline" onClick={() => router.push('/forecast/new')}>✎ New forecast</button>
-            <button className="hf-btn-gold" onClick={() => router.push('/auth/login')}>Save this forecast →</button>
-          </div>
-        </nav>
-
-        {/* Save banner */}
-        <div className="hf-save-banner">
-          <div className="hf-save-banner-inner">
-            <div>
-              <div className="hf-save-banner-title">Save your forecast for free</div>
-              <div className="hf-save-banner-sub">Create a free account to save this forecast, track it over time, and re-run it when rates change.</div>
-            </div>
-            <div className="hf-save-banner-btns">
-              <button className="hf-btn-gold" onClick={() => router.push('/auth/login?mode=signup')}>Create free account</button>
-              <button className="hf-btn-outline-light" onClick={() => router.push('/auth/login')}>Sign in</button>
-            </div>
-          </div>
-        </div>
+        {navSection}
 
         <div className="hf-page">
 
@@ -274,11 +455,19 @@ export default function ForecastPreviewPage() {
           {/* Stat cards */}
           <div className="hf-stat-grid">
 
-            <div className="hf-stat-card hf-stat-gold">
-              <div className="hf-stat-label">Projected super at retirement</div>
-              <div className="hf-stat-value gold">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
-              <div className="hf-stat-sub">Median estimate at age {retirementAge} · in today's dollars<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
-            </div>
+            {yearsToRetirement > 0 ? (
+              <div className="hf-stat-card hf-stat-gold">
+                <div className="hf-stat-label">Projected super at retirement</div>
+                <div className="hf-stat-value gold">{retirementBalanceMedian ? fmt(retirementBalanceMedian) : '—'}</div>
+                <div className="hf-stat-sub">Median estimate at age {retirementAge} · in today's dollars<br />after {yearsToRetirement} year{yearsToRetirement !== 1 ? 's' : ''} of growth</div>
+              </div>
+            ) : (
+              <div className="hf-stat-card hf-stat-gold">
+                <div className="hf-stat-label">Current super balance</div>
+                <div className="hf-stat-value gold">{fmt(superBalance)}</div>
+                <div className="hf-stat-sub">Today · age {currentAge}<br />starting point for this forecast</div>
+              </div>
+            )}
 
             <div className="hf-stat-card hf-stat-green">
               <div className="hf-stat-label">Estimated Age Pension</div>
@@ -336,26 +525,46 @@ export default function ForecastPreviewPage() {
             </div>
           </div>
 
-          {/* Bottom save CTA */}
-          <div className="hf-bottom-cta">
-            <div className="hf-bottom-cta-title">Want to save this forecast?</div>
-            <div className="hf-bottom-cta-sub">Create a free Harbour account to save your forecast, re-run it when Centrelink rates change, and track your progress over time.</div>
-            <div className="hf-bottom-cta-btns">
-              <button className="hf-cta-btn-gold" onClick={() => router.push('/auth/login?mode=signup')}>Create free account</button>
-              <button className="hf-cta-btn-outline" onClick={() => router.push('/forecast/new')}>Run another forecast</button>
-            </div>
-          </div>
-
-          {/* Disclaimer */}
-          <div className="hf-disclaimer">
-            This forecast is for general information purposes only and does not constitute financial advice. Results are projections based on modelled assumptions and are not guaranteed. Centrelink rules and superannuation laws change regularly — always verify your personal entitlements with Services Australia or a licensed financial adviser before making retirement decisions.
-          </div>
+          {ctaSection}
 
         </div>
       </div>
     </>
   );
 }
+
+const safeSpendingStyles = `
+  .ss-headline { background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.3); border-radius: 8px; padding: 28px 32px; margin-bottom: 24px; text-align: center; }
+  .ss-headline-label { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #c9a84c; font-weight: 500; margin-bottom: 10px; }
+  .ss-headline-value { font-family: 'Playfair Display', serif; font-size: 52px; font-weight: 700; color: #c9a84c; line-height: 1; }
+  .ss-headline-freq { font-size: 22px; font-weight: 400; color: rgba(201,168,76,0.6); }
+  .ss-headline-sub { font-size: 14px; color: #8a9bb0; margin-top: 8px; font-weight: 300; }
+
+  .ss-band-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  .ss-band-card { border-radius: 6px; padding: 22px 20px; border: 1px solid; position: relative; overflow: hidden; }
+  .ss-band-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; }
+  .ss-band-conservative { background: rgba(20,41,68,0.7); border-color: rgba(91,158,110,0.3); }
+  .ss-band-conservative::after { background: #5b9e6e; }
+  .ss-band-balanced { background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.4); }
+  .ss-band-balanced::after { background: #c9a84c; }
+  .ss-band-aggressive { background: rgba(20,41,68,0.7); border-color: rgba(192,97,74,0.3); }
+  .ss-band-aggressive::after { background: #e08878; }
+  .ss-band-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #8a9bb0; font-weight: 500; margin-bottom: 8px; }
+  .ss-band-value { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; color: #f5f0e8; margin-bottom: 4px; }
+  .ss-band-freq { font-size: 12px; color: #8a9bb0; margin-bottom: 8px; }
+  .ss-band-prob { font-size: 11px; color: #8a9bb0; font-style: italic; }
+
+  .ss-pension-card { display: flex; gap: 16px; align-items: flex-start; background: rgba(20,41,68,0.5); border: 1px solid rgba(201,168,76,0.15); border-radius: 6px; padding: 18px 20px; margin-bottom: 24px; }
+  .ss-pension-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+  .ss-pension-title { font-size: 13px; font-weight: 600; color: #f5f0e8; margin-bottom: 4px; letter-spacing: 0.01em; }
+  .ss-pension-body { font-size: 13px; color: #8a9bb0; line-height: 1.6; }
+  .ss-pension-body strong { color: #c9a84c; font-weight: 500; }
+
+  @media (max-width: 680px) {
+    .ss-band-grid { grid-template-columns: 1fr; }
+    .ss-headline-value { font-size: 38px; }
+  }
+`;
 
 const baseStyles = `
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }

@@ -100,7 +100,8 @@ function calculatePension(
 }
 
 // ── Main forecast function ────────────────────────────────────────────────────
-function runForecast(inputs, config) {
+// options.longevity — override the default age-90 horizon (e.g. 85, 95)
+function runForecast(inputs, config, options = {}) {
 
   // ── Inputs ────────────────────────────────────────────────────────────────
   const age             = inputs.current_age;
@@ -149,7 +150,7 @@ function runForecast(inputs, config) {
   const deemingHigh = config.deeming_rate_upper  / 100;
 
   const pensionAge = 67;
-  const longevity  = 90;
+  const longevity  = options.longevity || 90;
   const accYears   = Math.max(retireAge - age, 1);
   const retYears   = Math.max(longevity - retireAge, 1);
   const totalYears = accYears + retYears;
@@ -366,4 +367,83 @@ function runForecast(inputs, config) {
   };
 }
 
-module.exports = { runForecast };
+// ── Reverse forecast: "How much can I safely spend?" ─────────────────────────
+// Finds the highest annual spending such that funds are projected to last until
+// targetHorizon at each confidence level:
+//
+//   safe_spending_conservative  — p10 depletion age = targetHorizon
+//                                 90 % of scenarios last to target (cautious)
+//   safe_spending_balanced      — p50 depletion age = targetHorizon
+//                                 50 % of scenarios last to target (median)
+//   safe_spending_aggressive    — p90 depletion age = targetHorizon
+//                                 10 % of scenarios last to target (optimistic)
+//
+// The full Monte Carlo forecast at the balanced spending level is merged into
+// the return value so the caller has chart curves and stat cards ready.
+function runSafeSpending(inputs, config, targetHorizon) {
+  const MAX_ITER = 30;
+  const TOLERANCE = 100; // converge to within $100 p.a.
+
+  // Binary search: find the highest spending where fundsLastKey >= targetHorizon.
+  // Higher spending → funds deplete sooner → fundsLastKey decreases.
+  function findSpendingForKey(key) {
+    let lo = 0;
+    let hi = Math.max(1_000_000, inputs.super_balance * 2);
+
+    // Confirm hi is above the tipping point (funds run out before target at hi).
+    // If not, keep doubling hi (up to a hard cap of $5 m/yr).
+    let hiResult = runForecast(
+      { ...inputs, annual_spending: hi }, config, { longevity: targetHorizon }
+    );
+    while (hiResult[key] >= targetHorizon && hi < 5_000_000) {
+      hi *= 2;
+      hiResult = runForecast(
+        { ...inputs, annual_spending: hi }, config, { longevity: targetHorizon }
+      );
+    }
+
+    // If even lo=0 can't reach the target the balance is too small — return 0.
+    const loResult = runForecast(
+      { ...inputs, annual_spending: 0 }, config, { longevity: targetHorizon }
+    );
+    if (loResult[key] < targetHorizon) return 0;
+
+    for (let iter = 0; iter < MAX_ITER; iter++) {
+      if (hi - lo <= TOLERANCE) break;
+      const mid = (lo + hi) / 2;
+      const result = runForecast(
+        { ...inputs, annual_spending: mid }, config, { longevity: targetHorizon }
+      );
+      if (result[key] >= targetHorizon) {
+        lo = mid; // this spending level is still safe — try higher
+      } else {
+        hi = mid; // spending is too high — reduce
+      }
+    }
+
+    return Math.round(lo / 100) * 100; // round to nearest $100
+  }
+
+  const safeSpendingConservative = findSpendingForKey('funds_last_p10');
+  const safeSpendingBalanced     = findSpendingForKey('funds_last_p50');
+  const safeSpendingAggressive   = findSpendingForKey('funds_last_p90');
+
+  // Run a full forecast at the balanced spending level for chart and stat cards.
+  // Model at least to age 90 so shorter horizons still get a useful chart range.
+  const chartLongevity = Math.max(targetHorizon, 90);
+  const fullForecast = runForecast(
+    { ...inputs, annual_spending: safeSpendingBalanced },
+    config,
+    { longevity: chartLongevity }
+  );
+
+  return {
+    safe_spending_conservative: safeSpendingConservative,
+    safe_spending_balanced:     safeSpendingBalanced,
+    safe_spending_aggressive:   safeSpendingAggressive,
+    target_horizon:             targetHorizon,
+    ...fullForecast,
+  };
+}
+
+module.exports = { runForecast, runSafeSpending };
