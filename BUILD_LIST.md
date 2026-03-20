@@ -118,11 +118,12 @@
 | **Partner / couples details** | *Additional input step — partner age, super, salary* | → To do |
 | **Combined Age Pension calc (couples)** | *Assets test and deeming for couple — combined thresholds* | → To do |
 | **PDF export** | *Paid feature — forecast summary as downloadable PDF* | → To do |
+| **Forecast re-run with pre-filled inputs** | *Dashboard ↺ button now loads saved forecast inputs into the form (all fields pre-populated) and jumps to review step, with a notice banner confirming re-run mode. User can navigate back to edit any step before re-running.* | ✓ Done |
 | **Forecast re-run prompt** | *Email via Loops when Centrelink rates update in March or September* | → To do |
 | **Safe spending forecast (reverse solver)** | *"How much can I safely spend?" mode — binary search reverse-solver finds max annual spending at conservative (90%), balanced (50%), and optimistic (10%) confidence levels to a user-set target age. Fully separate results view with headline, three spending bands, pension card, chart, and summary. Available to both authenticated and unauthenticated users.* | ✓ Done |
 | **Sustainable spending metric** | *Year-by-year simulation showing annual spend supportable to age 90 accounting for investment returns and increasing pension as balance draws down* | → To do |
 | **Adjustable assumptions** | *Let user tweak return rates, inflation, longevity target — longevity target paid feature* | → To do |
-| **Mobile responsive polish** | *Input and forecast screens reviewed and tested on iOS Safari* | → To do |
+| **Mobile responsive polish** | *Viewport meta tag added to layout.js (was missing — critical). All app screens reviewed and fixed: dashboard forecast card stats visible on mobile (were hidden), action button tap targets increased to 40px, nav overflow resolved on forecast screens, save banner and CTA buttons stack full-width on mobile, chart/summary section padding reduced, upgrade price font scaled down. Additional 420px breakpoint added to forecast form for preset button stacking and tighter padding.* | ✓ Done |
 | **Loops — existing user import** | *One-time CSV export from Supabase Auth, import into Loops contacts* | → To do |
 | **Retired user mode** | *Skip accumulation phase, handle Age Pension from current balance for users already past 67* | ✓ Done |
 

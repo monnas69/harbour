@@ -273,8 +273,13 @@ export default function DashboardPage() {
                       <div className="hd-card-actions">
                         <button
                           className="hd-card-action-btn"
-                          title="Re-run forecast"
-                          onClick={e => { e.preventDefault(); e.stopPropagation(); router.push('/forecast/new'); }}
+                          title="Edit and re-run this forecast"
+                          onClick={e => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            sessionStorage.setItem('harbour_rerun', JSON.stringify(fc.inputs));
+                            router.push('/forecast/new');
+                          }}
                         >
                           ↺
                         </button>

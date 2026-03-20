@@ -55,11 +55,12 @@ function ForecastInputInner() {
   const urlMode    = searchParams.get('mode')    || 'traditional';
   const urlRetired = searchParams.get('retired') === 'true';
 
-  const [isRetired,    setIsRetired]    = useState(urlRetired);
-  const [step,         setStep]         = useState(1);
-  const [loading,      setLoading]      = useState(false);
-  const [error,        setError]        = useState('');
-  const [forecastMode, setForecastMode] = useState(urlMode);
+  const [isRetired,     setIsRetired]     = useState(urlRetired);
+  const [step,          setStep]          = useState(1);
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState('');
+  const [isRerun,       setIsRerun]       = useState(false);
+  const [forecastMode,  setForecastMode]  = useState(urlMode);
   const [targetHorizon, setTargetHorizon] = useState(90);
 
   // ─── ASFA values — loaded from config, fall back to known defaults ──────────
@@ -112,6 +113,44 @@ function ForecastInputInner() {
 
   const STEPS = isRetired ? RETIREE_STEPS : PRE_RETIREE_STEPS;
   const totalSteps = STEPS.length;
+
+  // ─── Pre-fill form from a saved forecast re-run ───────────────────────────
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('harbour_rerun');
+      if (!stored) return;
+      sessionStorage.removeItem('harbour_rerun');
+      const inputs = JSON.parse(stored);
+      const salary          = inputs.salary           || '';
+      const salarySacrifice = inputs.salary_sacrifice || '';
+      const ncc             = inputs.ncc              || '';
+      const spendingAnnual  = inputs.annual_spending  || '';
+      const spendingFn      = spendingAnnual ? annualToFortnightly(spendingAnnual) : '';
+      setForm({
+        name:                       inputs.name              || '',
+        currentAge:                 String(inputs.current_age    || ''),
+        superBalance:               inputs.super_balance     || '',
+        superBalanceDisplay:        inputs.super_balance     ? formatCurrency(inputs.super_balance)     : '',
+        salary,
+        salaryDisplay:              salary          ? formatCurrency(salary)          : '',
+        salarySacrifice,
+        salarySacrificeDisplay:     salarySacrifice ? formatCurrency(salarySacrifice) : '',
+        ncc,
+        nccDisplay:                 ncc             ? formatCurrency(ncc)             : '',
+        retirementAge:              String(inputs.retirement_age  || ''),
+        spendingAnnual,
+        spendingFortnightly:        spendingFn,
+        spendingAnnualDisplay:      spendingAnnual  ? formatCurrency(spendingAnnual)  : '',
+        spendingFortnightlyDisplay: spendingFn      ? formatCurrency(spendingFn)      : '',
+        disclaimerAccepted: false,
+      });
+      setIsRerun(true);
+      setStep(totalSteps);
+    } catch {
+      // Silently ignore — start fresh
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Validation ───────────────────────────────────────────────────────────────
   const stepErrors = () => {
@@ -465,6 +504,8 @@ function ForecastInputInner() {
         .optional-tag { font-size: 11px; font-weight: 400; color: #aaa; text-transform: none; letter-spacing: 0; margin-left: 6px; }
         .section-divider { border: none; border-top: 1px solid var(--cream2); margin: 8px 0 28px; }
         .hint-nudge { margin-top: 10px; font-size: 12px; color: #bbb; }
+
+        .rerun-notice { background: rgba(201,168,76,0.07); border: 1.5px solid rgba(201,168,76,0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: #8a6c1a; font-weight: 500; }
 
         /* Mode toggles */
         .mode-toggle { display: flex; gap: 0; margin-bottom: 32px; border: 2px solid var(--cream2); border-radius: 10px; overflow: hidden; }
@@ -970,6 +1011,12 @@ function ForecastInputInner() {
             <div>
               <h1 className="step-heading">Almost there,<br />{form.name}.</h1>
               <p className="step-sub">Check your details below, read the disclaimer, then run your forecast.</p>
+
+              {isRerun && (
+                <div className="rerun-notice">
+                  ↺ Loaded from your saved forecast — update any inputs below, then re-run.
+                </div>
+              )}
 
               <div className="review-card">
                 <div className="review-section-head">Personal</div>
