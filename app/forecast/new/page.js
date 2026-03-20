@@ -47,6 +47,7 @@ export default function ForecastInputPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isRerun, setIsRerun] = useState(false);
 
   // ─── ASFA values — loaded from config, fall back to known defaults ──────────
   const [asfaComfortable, setAsfaComfortable] = useState(51000);
@@ -91,6 +92,43 @@ export default function ForecastInputPage() {
       }
     }
     loadAsfa();
+  }, []);
+
+  // ─── Pre-fill form from a saved forecast re-run ───────────────────────────
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('harbour_rerun');
+      if (!stored) return;
+      sessionStorage.removeItem('harbour_rerun');
+      const inputs = JSON.parse(stored);
+      const salary          = inputs.salary           || '';
+      const salarySacrifice = inputs.salary_sacrifice || '';
+      const ncc             = inputs.ncc              || '';
+      const spendingAnnual  = inputs.annual_spending  || '';
+      const spendingFn      = spendingAnnual ? annualToFortnightly(spendingAnnual) : '';
+      setForm({
+        name:                      inputs.name              || '',
+        currentAge:                String(inputs.current_age     || ''),
+        superBalance:              inputs.super_balance     || '',
+        superBalanceDisplay:       inputs.super_balance     ? formatCurrency(inputs.super_balance)     : '',
+        salary,
+        salaryDisplay:             salary          ? formatCurrency(salary)          : '',
+        salarySacrifice,
+        salarySacrificeDisplay:    salarySacrifice ? formatCurrency(salarySacrifice) : '',
+        ncc,
+        nccDisplay:                ncc             ? formatCurrency(ncc)             : '',
+        retirementAge:             String(inputs.retirement_age  || ''),
+        spendingAnnual,
+        spendingFortnightly:       spendingFn,
+        spendingAnnualDisplay:     spendingAnnual  ? formatCurrency(spendingAnnual)  : '',
+        spendingFortnightlyDisplay: spendingFn     ? formatCurrency(spendingFn)      : '',
+        disclaimerAccepted: false,
+      });
+      setIsRerun(true);
+      setStep(6);
+    } catch (e) {
+      // Silently ignore — start fresh
+    }
   }, []);
 
   // Validation per step
@@ -429,6 +467,8 @@ export default function ForecastInputPage() {
 
         .hint-nudge { margin-top: 10px; font-size: 12px; color: #bbb; }
 
+        .rerun-notice { background: rgba(201,168,76,0.07); border: 1.5px solid rgba(201,168,76,0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: #8a6c1a; font-weight: 500; }
+
         @media (max-width: 768px) {
           .harbour-wrap { grid-template-columns: 1fr; }
           .sidebar { display: none; }
@@ -649,6 +689,12 @@ export default function ForecastInputPage() {
             <div>
               <h1 className="step-heading">Almost there,<br />{form.name}.</h1>
               <p className="step-sub">Check your details below, read the disclaimer, then run your forecast.</p>
+
+              {isRerun && (
+                <div className="rerun-notice">
+                  ↺ Loaded from your saved forecast — update any inputs below, then re-run.
+                </div>
+              )}
 
               <div className="review-card">
                 <div className="review-section-head">Personal</div>
