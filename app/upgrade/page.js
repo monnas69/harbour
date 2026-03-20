@@ -9,8 +9,6 @@ export default function UpgradePage() {
   const router = useRouter();
   const [isPlus, setIsPlus] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -30,23 +28,6 @@ export default function UpgradePage() {
     load();
   }, [router]);
 
-  async function handleCheckout() {
-    setCheckoutLoading(true);
-    setCheckoutError(null);
-    try {
-      const res = await fetch('/api/stripe/checkout', { method: 'POST' });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setCheckoutError(data.error || 'Something went wrong. Please try again.');
-        setCheckoutLoading(false);
-      }
-    } catch {
-      setCheckoutError('Something went wrong. Please try again.');
-      setCheckoutLoading(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -191,18 +172,13 @@ export default function UpgradePage() {
               {isPlus ? (
                 <button className="up-btn-plus active" disabled>✦ Active — Harbour Plus</button>
               ) : (
-                <button
-                  className="up-btn-plus"
-                  onClick={handleCheckout}
-                  disabled={checkoutLoading}
-                  style={checkoutLoading ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
-                >
-                  {checkoutLoading ? 'Redirecting…' : 'Get Harbour Plus — $55 / yr'}
+                <button className="up-btn-plus" disabled style={{ opacity: 0.55, cursor: 'not-allowed' }}>
+                  Coming soon
                 </button>
               )}
-              {checkoutError && (
-                <p className="up-coming-hint" style={{ color: '#e07070', marginTop: 10 }}>
-                  {checkoutError}
+              {!isPlus && (
+                <p className="up-coming-hint">
+                  Harbour Plus is coming soon — check back shortly.
                 </p>
               )}
             </div>
