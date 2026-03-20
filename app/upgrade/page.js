@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 
+
 export default function UpgradePage() {
   const router = useRouter();
   const [isPlus, setIsPlus] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -26,6 +29,24 @@ export default function UpgradePage() {
     }
     load();
   }, [router]);
+
+  async function handleCheckout() {
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      const res = await fetch('/api/stripe/checkout', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setCheckoutError(data.error || 'Something went wrong. Please try again.');
+        setCheckoutLoading(false);
+      }
+    } catch {
+      setCheckoutError('Something went wrong. Please try again.');
+      setCheckoutLoading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -170,15 +191,18 @@ export default function UpgradePage() {
               {isPlus ? (
                 <button className="up-btn-plus active" disabled>✦ Active — Harbour Plus</button>
               ) : (
-                <button className="up-btn-plus coming-soon" disabled title="Online payments coming soon">
-                  Coming soon
+                <button
+                  className="up-btn-plus"
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
+                  style={checkoutLoading ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
+                >
+                  {checkoutLoading ? 'Redirecting…' : 'Get Harbour Plus — $55 / yr'}
                 </button>
               )}
-              {!isPlus && (
-                <p className="up-coming-hint">
-                  Online payments are coming soon. In the meantime, email us at{' '}
-                  <a href="mailto:hello@harbourapp.com.au" className="up-email-link">hello@harbourapp.com.au</a>{' '}
-                  to get Plus access early.
+              {checkoutError && (
+                <p className="up-coming-hint" style={{ color: '#e07070', marginTop: 10 }}>
+                  {checkoutError}
                 </p>
               )}
             </div>
@@ -426,9 +450,7 @@ const styles = `
     cursor: pointer; transition: background 0.2s;
   }
 
-  .up-btn-plus.coming-soon {
-    opacity: 0.5; cursor: not-allowed;
-  }
+  .up-btn-plus:hover:not(:disabled) { background: #e8cc88; }
 
   .up-btn-plus.active {
     background: rgba(201,168,76,0.15);
