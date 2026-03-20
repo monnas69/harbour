@@ -108,6 +108,7 @@ export default function ForecastResultPage() {
     const spendingLine = ages.map(() => spendingAmt);
 
     loadChartJs().then((Chart) => {
+      if (!chartRef.current) return;
       if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; }
 
       const ctx = chartRef.current.getContext('2d');
@@ -217,11 +218,11 @@ export default function ForecastResultPage() {
   }
 
   // ── Derived values ─────────────────────────────────────────────────────────
-  const inputs  = forecast.inputs;
-  const outputs = forecast.outputs;
+  const inputs  = forecast.inputs  || {};
+  const outputs = forecast.outputs || {};
   const inflation = 0.025;
 
-  const name           = inputs.name?.trim() || '';
+  const name           = forecast.name?.trim() || inputs.name?.trim() || '';
   const currentAge     = inputs.current_age;
   const superBalance   = inputs.super_balance;
   const retirementAge  = inputs.retirement_age;
