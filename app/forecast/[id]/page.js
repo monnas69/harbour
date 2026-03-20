@@ -208,7 +208,7 @@ export default function ForecastResultPage() {
           <div style={{ textAlign: 'center', color: '#e08878', fontFamily: 'DM Sans, sans-serif' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>⚠</div>
             <div style={{ fontSize: 16 }}>{error}</div>
-            <button onClick={() => { router.refresh(); router.push('/dashboard'); }} style={{ marginTop: 20, padding: '10px 24px', background: '#c9a84c', border: 'none', borderRadius: 4, color: '#0D1F35', fontFamily: 'DM Sans, sans-serif', cursor: 'pointer', fontWeight: 600 }}>
+            <button onClick={() => { window.location.href = '/dashboard'; }} style={{ marginTop: 20, padding: '10px 24px', background: '#c9a84c', border: 'none', borderRadius: 4, color: '#0D1F35', fontFamily: 'DM Sans, sans-serif', cursor: 'pointer', fontWeight: 600 }}>
               Back to dashboard
             </button>
           </div>
@@ -287,7 +287,7 @@ export default function ForecastResultPage() {
           {name ? <>Viewing <span>{name}'s forecast</span></> : <>Viewing <span>your forecast</span></>}
         </span>
         <button className="hf-btn-outline" onClick={() => router.push('/forecast/new')}>✎ New forecast</button>
-        <button className="hf-btn-outline" onClick={() => { router.refresh(); router.push('/dashboard'); }}>Dashboard</button>
+        <button className="hf-btn-outline" onClick={() => { window.location.href = '/dashboard'; }}>Dashboard</button>
       </div>
     </nav>
   );
