@@ -272,18 +272,6 @@ export default function DashboardPage() {
                       <div className="hd-card-actions">
                         <button
                           className="hd-card-action-btn"
-                          title="Edit and re-run this forecast"
-                          onClick={e => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            sessionStorage.setItem('harbour_rerun', JSON.stringify({ ...fc.inputs, name: fc.name, _forecast_id: fc.id }));
-                            window.location.href = '/forecast/new';
-                          }}
-                        >
-                          ↺
-                        </button>
-                        <button
-                          className="hd-card-action-btn"
                           title="Delete forecast"
                           onClick={e => handleDelete(e, fc.id)}
                           disabled={deleting === fc.id}
