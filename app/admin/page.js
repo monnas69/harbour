@@ -14,7 +14,7 @@ const SECTIONS = [
   {
     id: 'pension_couple',
     title: 'Age Pension — couple homeowner (each)',
-    sub: 'Each partner's individual rate — combined max = 2× these figures',
+    sub: "Each partner's individual rate — combined max = 2× these figures",
     keys: ['pension_base_couple', 'pension_supplement_couple', 'pension_energy_couple'],
   },
   {
