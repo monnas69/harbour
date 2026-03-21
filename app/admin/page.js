@@ -51,8 +51,8 @@ const SECTIONS = [
     id: 'model',
     icon: '⚙️',
     title: 'Simulation parameters',
-    sub: 'Monte Carlo model assumptions — review annually',
-    keys: ['return_accumulation', 'return_retirement', 'return_volatility', 'inflation_rate', 'fee_rate'],
+    sub: 'Monte Carlo model assumptions — return rates are NET of fees and tax (industry standard, consistent with AustralianSuper / ASIC). Review annually.',
+    keys: ['return_accumulation', 'return_retirement', 'return_volatility', 'inflation_rate'],
   },
 ];
 
@@ -62,7 +62,6 @@ const PCT_KEYS = new Set([
   'deeming_rate_lower', 'deeming_rate_upper',
   'sg_rate', 'drawdown_under_65', 'drawdown_65_74', 'drawdown_75_79', 'drawdown_80_84', 'drawdown_85_89', 'drawdown_90_plus',
   'return_accumulation', 'return_retirement', 'return_volatility', 'inflation_rate',
-  'fee_rate',
 ]);
 
 // Keys that are fortnightly dollar amounts

@@ -135,9 +135,9 @@ function runForecast(inputs, config, options = {}) {
   const sgRate     = config.sg_rate             / 100;
   const tbc        = config.transfer_balance_cap;
 
-  // Super fund fee rate — applied as drag on net investment returns
-  // Default 0.67% (ASIC/industry average) if not present in config
-  const feeRate = (config.fee_rate !== undefined ? config.fee_rate : 0.67) / 100;
+  // Return assumptions are NET of fees and applicable taxes — matching industry
+  // standard (AustralianSuper, ASIC MoneySmart). Fee rate is no longer applied
+  // separately; it is baked into return_accumulation and return_retirement.
 
   // Income test reduction rate — default 50% (legislated rate) if not in config
   const incomeReductionRate = (config.income_reduction_rate !== undefined ? config.income_reduction_rate : 50) / 100;
@@ -232,9 +232,9 @@ function runForecast(inputs, config, options = {}) {
     for (let y = 0; y < accYears; y++) {
       const r = accReturns[i][y];
 
-      // Net return after 15% earnings tax and fund fees
-      // Tax only applies to the investment earnings component
-      const netAccReturn = r * 0.85 - feeRate;
+      // Net return — config value is already net of fees and 15% earnings tax
+      // (consistent with AustralianSuper / ASIC industry standard basis)
+      const netAccReturn = r;
 
       // Mid-year compounding for contributions:
       // Existing balance earns full year net return.
@@ -259,11 +259,10 @@ function runForecast(inputs, config, options = {}) {
       const currentAge = retireAge + y;
       const r = retReturns[i][y];
 
-      // Pension phase: tax-free earnings, fees still apply
-      const netRetReturn = r - feeRate;
-
-      // Accumulation phase: 15% earnings tax + fees
-      const netAccReturn = r * 0.85 - feeRate;
+      // Both pension and accumulation-overflow phases use the net return
+      // directly — fees and applicable taxes are baked into the config value
+      const netRetReturn = r;
+      const netAccReturn = r;
 
       penBal = penBal * (1 + netRetReturn);
       accBal = accBal * (1 + netAccReturn);
