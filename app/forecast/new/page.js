@@ -39,11 +39,29 @@ const PRE_RETIREE_STEPS = [
   { id: 6, label: 'Confirm',     shortLabel: '06' },
 ];
 
+const PRE_RETIREE_STEPS_COUPLE = [
+  { id: 1, label: 'About you',    shortLabel: '01' },
+  { id: 2, label: 'Your partner', shortLabel: '02' },
+  { id: 3, label: 'Current age',  shortLabel: '03' },
+  { id: 4, label: 'Your super',   shortLabel: '04' },
+  { id: 5, label: 'Retirement',   shortLabel: '05' },
+  { id: 6, label: 'Spending',     shortLabel: '06' },
+  { id: 7, label: 'Confirm',      shortLabel: '07' },
+];
+
 const RETIREE_STEPS = [
   { id: 1, label: 'About you',     shortLabel: '01' },
   { id: 2, label: 'Your situation', shortLabel: '02' },
   { id: 3, label: 'Your goal',     shortLabel: '03' },
   { id: 4, label: 'Confirm',       shortLabel: '04' },
+];
+
+const RETIREE_STEPS_COUPLE = [
+  { id: 1, label: 'About you',      shortLabel: '01' },
+  { id: 2, label: 'Your partner',   shortLabel: '02' },
+  { id: 3, label: 'Your situation', shortLabel: '03' },
+  { id: 4, label: 'Your goal',      shortLabel: '04' },
+  { id: 5, label: 'Confirm',        shortLabel: '05' },
 ];
 
 // ─── Inner component (needs useSearchParams) ──────────────────────────────────
@@ -56,6 +74,7 @@ function ForecastInputInner() {
   const urlRetired = searchParams.get('retired') === 'true';
 
   const [isRetired,     setIsRetired]     = useState(urlRetired);
+  const [hasPartner,    setHasPartner]    = useState(false);
   const [step,          setStep]          = useState(1);
   const [loading,       setLoading]       = useState(false);
   const [error,         setError]         = useState('');
@@ -64,10 +83,12 @@ function ForecastInputInner() {
   const [targetHorizon, setTargetHorizon] = useState(90);
 
   // ─── ASFA values — loaded from config, fall back to known defaults ──────────
-  const [asfaComfortable,    setAsfaComfortable]    = useState(51000);
-  const [asfaModest,         setAsfaModest]         = useState(36000);
-  const [CONCESSIONAL_CAP,   setConcessionalCap]    = useState(30000);
-  const [NCC_CAP,            setNccCap]             = useState(120000);
+  const [asfaComfortable,       setAsfaComfortable]       = useState(51000);
+  const [asfaModest,            setAsfaModest]            = useState(36000);
+  const [asfaComfortableCouple, setAsfaComfortableCouple] = useState(72663);
+  const [asfaModestCouple,      setAsfaModestCouple]      = useState(52085);
+  const [CONCESSIONAL_CAP,      setConcessionalCap]       = useState(30000);
+  const [NCC_CAP,               setNccCap]                = useState(120000);
 
   const [form, setForm] = useState({
     name: '',
@@ -86,6 +107,13 @@ function ForecastInputInner() {
     spendingAnnualDisplay: '',
     spendingFortnightlyDisplay: '',
     disclaimerAccepted: false,
+    // Partner fields
+    partnerSuperBalance: '',
+    partnerSuperBalanceDisplay: '',
+    partnerSalary: '',
+    partnerSalaryDisplay: '',
+    partnerSalarySacrifice: '',
+    partnerSalarySacrificeDisplay: '',
   });
 
   useEffect(() => {
@@ -95,11 +123,13 @@ function ForecastInputInner() {
         const { data } = await supabase
           .from('config')
           .select('key, value')
-          .in('key', ['asfa_comfortable_single', 'asfa_modest_single', 'concessional_cap', 'non_concessional_cap']);
+          .in('key', ['asfa_comfortable_single', 'asfa_modest_single', 'concessional_cap', 'non_concessional_cap', 'asfa_comfortable_couple', 'asfa_modest_couple']);
         if (data) {
           data.forEach(row => {
             if (row.key === 'asfa_comfortable_single') setAsfaComfortable(Number(row.value));
             if (row.key === 'asfa_modest_single')      setAsfaModest(Number(row.value));
+            if (row.key === 'asfa_comfortable_couple') setAsfaComfortableCouple(Number(row.value));
+            if (row.key === 'asfa_modest_couple')      setAsfaModestCouple(Number(row.value));
             if (row.key === 'concessional_cap')        setConcessionalCap(Number(row.value));
             if (row.key === 'non_concessional_cap')    setNccCap(Number(row.value));
           });
@@ -111,7 +141,13 @@ function ForecastInputInner() {
     loadAsfa();
   }, []);
 
-  const STEPS = isRetired ? RETIREE_STEPS : PRE_RETIREE_STEPS;
+  const STEPS = isRetired
+    ? (hasPartner ? RETIREE_STEPS_COUPLE : RETIREE_STEPS)
+    : (hasPartner ? PRE_RETIREE_STEPS_COUPLE : PRE_RETIREE_STEPS);
+
+  // Step offset: when a partner step is inserted at position 2, all
+  // subsequent step numbers shift up by 1
+  const P = hasPartner ? 1 : 0;
   const totalSteps = STEPS.length;
 
 
@@ -122,8 +158,16 @@ function ForecastInputInner() {
       if (!form.name.trim()) return 'Please enter your name.';
     }
 
-    // Step 2 — age (both flows); balance also required for retirees
-    if (step === 2) {
+    // Step 2 — partner details (both flows, only when hasPartner)
+    if (step === 2 && hasPartner) {
+      const partnerBal = parseCurrency(form.partnerSuperBalanceDisplay);
+      if (!form.partnerSuperBalanceDisplay || partnerBal === '') return 'Please enter your partner\'s super balance.';
+      if (partnerBal < 0) return 'Balance cannot be negative.';
+    }
+
+    // Age step: step 2 when no partner, step 3 when has partner (= 2 + P)
+    // Balance also required for retirees on this step
+    if (step === 2 + P) {
       const age = parseInt(form.currentAge);
       if (!form.currentAge || isNaN(age)) return 'Please enter your current age.';
       if (isRetired) {
@@ -136,14 +180,14 @@ function ForecastInputInner() {
       }
     }
 
-    // Pre-retiree steps 3–5
+    // Pre-retiree steps 3+P–5+P
     if (!isRetired) {
-      if (step === 3) {
+      if (step === 3 + P) {
         const bal = parseCurrency(form.superBalanceDisplay);
         if (!form.superBalanceDisplay || bal === '') return 'Please enter your super balance.';
         if (bal < 0) return 'Balance cannot be negative.';
       }
-      if (step === 4) {
+      if (step === 4 + P) {
         const retAge = parseInt(form.retirementAge);
         const curAge = parseInt(form.currentAge);
         if (!form.retirementAge || isNaN(retAge)) return 'Please enter your target retirement age.';
@@ -151,7 +195,7 @@ function ForecastInputInner() {
         if (retAge <= curAge) return `Retirement age must be greater than your current age (${curAge}).`;
         if (retAge > 75) return 'Retirement age cannot exceed 75 for now.';
       }
-      if (step === 5) {
+      if (step === 5 + P) {
         if (forecastMode === 'traditional') {
           const annual = parseCurrency(form.spendingAnnualDisplay);
           if (!form.spendingAnnualDisplay || annual === '') return 'Please enter your target retirement spending.';
@@ -160,8 +204,8 @@ function ForecastInputInner() {
       }
     }
 
-    // Retiree step 3 — goal
-    if (isRetired && step === 3) {
+    // Retiree goal step (3+P)
+    if (isRetired && step === 3 + P) {
       if (forecastMode === 'traditional') {
         const annual = parseCurrency(form.spendingAnnualDisplay);
         if (!form.spendingAnnualDisplay || annual === '') return 'Please enter your current annual spending.';
@@ -263,6 +307,33 @@ function ForecastInputInner() {
     if (form.spendingFortnightly !== '') setForm(f => ({ ...f, spendingFortnightlyDisplay: formatCurrency(f.spendingFortnightly) }));
   };
 
+  const handlePartnerSuperBalance = (raw) => {
+    const num = parseCurrency(raw);
+    setForm(f => ({ ...f, partnerSuperBalanceDisplay: raw, partnerSuperBalance: num === '' ? '' : num }));
+    setError('');
+  };
+  const handlePartnerSuperBalanceBlur = () => {
+    if (form.partnerSuperBalance !== '') setForm(f => ({ ...f, partnerSuperBalanceDisplay: formatCurrency(f.partnerSuperBalance) }));
+  };
+
+  const handlePartnerSalary = (raw) => {
+    const num = parseCurrency(raw);
+    setForm(f => ({ ...f, partnerSalaryDisplay: raw, partnerSalary: num === '' ? '' : num }));
+    setError('');
+  };
+  const handlePartnerSalaryBlur = () => {
+    if (form.partnerSalary !== '') setForm(f => ({ ...f, partnerSalaryDisplay: formatCurrency(f.partnerSalary) }));
+  };
+
+  const handlePartnerSalarySacrifice = (raw) => {
+    const num = parseCurrency(raw);
+    setForm(f => ({ ...f, partnerSalarySacrificeDisplay: raw, partnerSalarySacrifice: num === '' ? '' : num }));
+    setError('');
+  };
+  const handlePartnerSalarySacrificeBlur = () => {
+    if (form.partnerSalarySacrifice !== '') setForm(f => ({ ...f, partnerSalarySacrificeDisplay: formatCurrency(f.partnerSalarySacrifice) }));
+  };
+
   const setAsfaPreset = (annual) => {
     const fn = annualToFortnightly(annual);
     setForm(f => ({
@@ -285,14 +356,19 @@ function ForecastInputInner() {
     setError('');
     try {
       const base = {
-        name:             form.name.trim(),
-        current_age:      parseInt(form.currentAge),
-        super_balance:    parseFloat(form.superBalance),
+        name:                     form.name.trim(),
+        current_age:              parseInt(form.currentAge),
+        super_balance:            parseFloat(form.superBalance),
         // Retirees are already retired — use current age as retirement age
-        retirement_age:   isRetired ? parseInt(form.currentAge) : parseInt(form.retirementAge),
-        salary:           isRetired ? 0 : (form.salary ? parseFloat(form.salary) : 0),
-        salary_sacrifice: isRetired ? 0 : (form.salarySacrifice ? parseFloat(form.salarySacrifice) : 0),
-        ncc:              isRetired ? 0 : (form.ncc ? parseFloat(form.ncc) : 0),
+        retirement_age:           isRetired ? parseInt(form.currentAge) : parseInt(form.retirementAge),
+        salary:                   isRetired ? 0 : (form.salary ? parseFloat(form.salary) : 0),
+        salary_sacrifice:         isRetired ? 0 : (form.salarySacrifice ? parseFloat(form.salarySacrifice) : 0),
+        ncc:                      isRetired ? 0 : (form.ncc ? parseFloat(form.ncc) : 0),
+        has_partner:              hasPartner,
+        partner_super_balance:    hasPartner ? (parseFloat(form.partnerSuperBalance) || 0) : 0,
+        partner_salary:           hasPartner && !isRetired ? (parseFloat(form.partnerSalary) || 0) : 0,
+        partner_salary_sacrifice: hasPartner && !isRetired ? (parseFloat(form.partnerSalarySacrifice) || 0) : 0,
+        partner_ncc:              0,
       };
 
       let endpoint, payload;
@@ -339,6 +415,10 @@ function ForecastInputInner() {
 
   // ── Derived ──────────────────────────────────────────────────────────────────
   const sgAmount = sgFortnightly(form.salary);
+  const partnerSgAmount = sgFortnightly(form.partnerSalary);
+  // Active ASFA standards — couple values when hasPartner, otherwise single
+  const activeAsfaComfortable = hasPartner ? asfaComfortableCouple : asfaComfortable;
+  const activeAsfaModest      = hasPartner ? asfaModestCouple      : asfaModest;
   const yearsToRetirement = form.currentAge && form.retirementAge
     ? parseInt(form.retirementAge) - parseInt(form.currentAge)
     : null;
@@ -575,14 +655,76 @@ function ForecastInputInner() {
                   </button>
                 </div>
               </div>
+              <div className="field-group">
+                <label className="field-label">Do you have a partner?</label>
+                <div className="mode-toggle" style={{ marginBottom: 0 }}>
+                  <button
+                    type="button"
+                    className={`mode-toggle-btn${!hasPartner ? ' active' : ''}`}
+                    onClick={() => { setHasPartner(false); setError(''); }}
+                  >
+                    No — I'm forecasting solo
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-toggle-btn${hasPartner ? ' active' : ''}`}
+                    onClick={() => { setHasPartner(true); setError(''); }}
+                  >
+                    Yes — include my partner
+                  </button>
+                </div>
+              </div>
               <div className="btn-row">
                 <button className="btn-next" onClick={goNext}>Continue →</button>
               </div>
             </div>
           )}
 
+          {/* ── Step 2 — PARTNER DETAILS (both flows, only when hasPartner) ─── */}
+          {step === 2 && hasPartner && (
+            <div onKeyDown={handleKeyDown}>
+              <h1 className="step-heading">Your partner's<br />details.</h1>
+              <p className="step-sub">We'll combine your super balances and use couple Centrelink thresholds for the Age Pension assessment.</p>
+
+              <div className="field-group">
+                <label className="field-label">Partner's current super balance</label>
+                <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $180,000" value={form.partnerSuperBalanceDisplay} onChange={e => handlePartnerSuperBalance(e.target.value)} onBlur={handlePartnerSuperBalanceBlur} autoFocus />
+                <p className="field-hint">Total across all of your partner's super funds. Check their latest statement.</p>
+              </div>
+
+              {!isRetired && (
+                <>
+                  <hr className="section-divider" />
+                  <div className="field-group">
+                    <label className="field-label">Partner's annual salary <span className="optional-tag">(optional)</span></label>
+                    <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $75,000" value={form.partnerSalaryDisplay} onChange={e => handlePartnerSalary(e.target.value)} onBlur={handlePartnerSalaryBlur} />
+                    <p className="field-hint">Used to calculate your partner's 12% SG contributions until retirement.</p>
+                  </div>
+                  {partnerSgAmount !== null && (
+                    <div className="sg-callout">
+                      <div className="sg-icon">💼</div>
+                      <div className="sg-text">Your partner's employer is contributing approximately <strong>{formatCurrency(partnerSgAmount)} per fortnight</strong> ({formatCurrency(sgAnnual(form.partnerSalary))} per year) to their super.</div>
+                    </div>
+                  )}
+
+                  <hr className="section-divider" />
+                  <div className="field-group">
+                    <label className="field-label">Partner's salary sacrifice <span className="optional-tag">(optional)</span></label>
+                    <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $5,000" value={form.partnerSalarySacrificeDisplay} onChange={e => handlePartnerSalarySacrifice(e.target.value)} onBlur={handlePartnerSalarySacrificeBlur} />
+                    <p className="field-hint">Annual pre-tax amount your partner salary sacrifices into super.</p>
+                  </div>
+                </>
+              )}
+
+              <div className="btn-row">
+                <button className="btn-back" onClick={goBack}>← Back</button>
+                <button className="btn-next" onClick={goNext}>Continue →</button>
+              </div>
+            </div>
+          )}
+
           {/* ── Step 2 — RETIREE: age + balance ──────────────────────────────── */}
-          {step === 2 && isRetired && (
+          {step === 2 + P && isRetired && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">Your current<br />situation.</h1>
               <p className="step-sub">Tell us where you're at today — we'll work with that.</p>
@@ -611,8 +753,8 @@ function ForecastInputInner() {
             </div>
           )}
 
-          {/* ── Step 2 — PRE-RETIREE: age only ──────────────────────────────── */}
-          {step === 2 && !isRetired && (
+          {/* ── Step 2+P — PRE-RETIREE: age only ────────────────────────────── */}
+          {step === 2 + P && !isRetired && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">How old are<br />you today?</h1>
               <p className="step-sub">We model your super growth from now until retirement.</p>
@@ -628,8 +770,8 @@ function ForecastInputInner() {
             </div>
           )}
 
-          {/* ── Step 3 — RETIREE: goal (mode + spending or horizon) ───────────── */}
-          {step === 3 && isRetired && (
+          {/* ── Step 3+P — RETIREE: goal (mode + spending or horizon) ──────────── */}
+          {step === 3 + P && isRetired && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">What would you<br />like to know?</h1>
               <p className="step-sub">Choose what matters most to you right now.</p>
@@ -694,21 +836,21 @@ function ForecastInputInner() {
                     Enter what you currently spend and we'll project how long your money lasts across a range of market scenarios.
                   </div>
                   <div className="preset-row">
-                    <button className={`preset-btn ${form.spendingAnnual === asfaComfortable ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaComfortable)}>
-                      <div className="preset-name">ASFA Comfortable</div>
-                      <div className="preset-amount">{formatCurrency(asfaComfortable)}</div>
-                      <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaComfortable))} per fortnight</div>
+                    <button className={`preset-btn ${form.spendingAnnual === activeAsfaComfortable ? 'active' : ''}`} onClick={() => setAsfaPreset(activeAsfaComfortable)}>
+                      <div className="preset-name">ASFA Comfortable{hasPartner ? ' (couple)' : ''}</div>
+                      <div className="preset-amount">{formatCurrency(activeAsfaComfortable)}</div>
+                      <div className="preset-freq">{formatCurrency(annualToFortnightly(activeAsfaComfortable))} per fortnight</div>
                     </button>
-                    <button className={`preset-btn ${form.spendingAnnual === asfaModest ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaModest)}>
-                      <div className="preset-name">ASFA Modest</div>
-                      <div className="preset-amount">{formatCurrency(asfaModest)}</div>
-                      <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaModest))} per fortnight</div>
+                    <button className={`preset-btn ${form.spendingAnnual === activeAsfaModest ? 'active' : ''}`} onClick={() => setAsfaPreset(activeAsfaModest)}>
+                      <div className="preset-name">ASFA Modest{hasPartner ? ' (couple)' : ''}</div>
+                      <div className="preset-amount">{formatCurrency(activeAsfaModest)}</div>
+                      <div className="preset-freq">{formatCurrency(annualToFortnightly(activeAsfaModest))} per fortnight</div>
                     </button>
                   </div>
                   <div className="spend-grid">
                     <div>
                       <label className="field-label">Annual spending</label>
-                      <input className="field-input" type="text" inputMode="decimal" placeholder={`e.g. ${formatCurrency(asfaComfortable)}`} value={form.spendingAnnualDisplay} onChange={e => handleSpendingAnnual(e.target.value)} onBlur={handleSpendingAnnualBlur} />
+                      <input className="field-input" type="text" inputMode="decimal" placeholder={`e.g. ${formatCurrency(activeAsfaComfortable)}`} value={form.spendingAnnualDisplay} onChange={e => handleSpendingAnnual(e.target.value)} onBlur={handleSpendingAnnualBlur} />
                     </div>
                     <div className="spend-divider">↔</div>
                     <div>
@@ -727,8 +869,8 @@ function ForecastInputInner() {
             </div>
           )}
 
-          {/* ── Step 3 — PRE-RETIREE: super balance + contributions ───────────── */}
-          {step === 3 && !isRetired && (
+          {/* ── Step 3+P — PRE-RETIREE: super balance + contributions ──────────── */}
+          {step === 3 + P && !isRetired && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">Your super<br />balance & contributions.</h1>
               <p className="step-sub">Enter your current balance and any contributions going into your super each year.</p>
@@ -801,8 +943,8 @@ function ForecastInputInner() {
             </div>
           )}
 
-          {/* ── Step 4 — PRE-RETIREE: retirement age ─────────────────────────── */}
-          {step === 4 && !isRetired && (
+          {/* ── Step 4+P — PRE-RETIREE: retirement age ──────────────────────────── */}
+          {step === 4 + P && !isRetired && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">When do you<br />want to retire?</h1>
               <p className="step-sub">The Age Pension becomes available at 67 regardless of when you stop working.{form.currentAge && <> You are currently {form.currentAge}.</>}</p>
@@ -828,8 +970,8 @@ function ForecastInputInner() {
             </div>
           )}
 
-          {/* ── Step 4 — RETIREE: confirm ─────────────────────────────────────── */}
-          {step === 4 && isRetired && (
+          {/* ── Step 4+P — RETIREE: confirm ───────────────────────────────────── */}
+          {step === 4 + P && isRetired && (
             <div>
               <h1 className="step-heading">Almost there,<br />{form.name}.</h1>
               <p className="step-sub">Check your details below, read the disclaimer, then run your forecast.</p>
@@ -838,9 +980,10 @@ function ForecastInputInner() {
                 <div className="review-section-head">Personal <button className="review-edit-btn" onClick={() => { setError(''); setStep(1); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Name</span><span className="review-val">{form.name}</span></div>
                 <div className="review-row"><span className="review-key">Current age</span><span className="review-val">{form.currentAge}</span></div>
-                <div className="review-section-head">Your balance <button className="review-edit-btn" onClick={() => { setError(''); setStep(2); }}>Edit →</button></div>
+                <div className="review-section-head">Your balance <button className="review-edit-btn" onClick={() => { setError(''); setStep(2 + P); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Super / investment balance</span><span className="review-val">{formatCurrency(form.superBalance)}</span></div>
-                <div className="review-section-head">Your goal <button className="review-edit-btn" onClick={() => { setError(''); setStep(3); }}>Edit →</button></div>
+                {hasPartner && <div className="review-row"><span className="review-key">Partner's super balance</span><span className="review-val">{formatCurrency(form.partnerSuperBalance)}</span></div>}
+                <div className="review-section-head">Your goal <button className="review-edit-btn" onClick={() => { setError(''); setStep(3 + P); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Forecast type</span><span className="review-val">{forecastMode === 'safe_spending' ? 'Safe Spending' : 'How long will my money last?'}</span></div>
                 {forecastMode === 'traditional'
                   ? <div className="review-row"><span className="review-key">Annual spending</span><span className="review-val">{formatCurrency(form.spendingFortnightly)}/fn · {formatCurrency(form.spendingAnnual)}/yr</span></div>
@@ -849,7 +992,7 @@ function ForecastInputInner() {
                 <div className="review-row"><span className="review-key">Age Pension eligibility</span><span className="review-val">Age 67</span></div>
                 <div className="review-section-head">Assumptions (defaults)</div>
                 <div className="review-row"><span className="review-key">Homeowner</span><span className="review-val">Yes</span></div>
-                <div className="review-row"><span className="review-key">Relationship status</span><span className="review-val">Single</span></div>
+                <div className="review-row"><span className="review-key">Relationship status</span><span className="review-val">{hasPartner ? 'Couple' : 'Single'}</span></div>
                 <div className="review-row"><span className="review-key">Modelled to age</span><span className="review-val">90</span></div>
               </div>
 
@@ -879,8 +1022,8 @@ function ForecastInputInner() {
             </div>
           )}
 
-          {/* ── Step 5 — PRE-RETIREE: spending target or safe spending ────────── */}
-          {step === 5 && !isRetired && (
+          {/* ── Step 5+P — PRE-RETIREE: spending target or safe spending ───────── */}
+          {step === 5 + P && !isRetired && (
             <div onKeyDown={handleKeyDown}>
               <h1 className="step-heading">
                 {forecastMode === 'traditional' ? <>How much will<br />you spend?</> : <>Until what age should<br />your money last?</>}
@@ -903,21 +1046,21 @@ function ForecastInputInner() {
               {forecastMode === 'traditional' && (
                 <>
                   <div className="preset-row">
-                    <button className={`preset-btn ${form.spendingAnnual === asfaComfortable ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaComfortable)}>
-                      <div className="preset-name">ASFA Comfortable</div>
-                      <div className="preset-amount">{formatCurrency(asfaComfortable)}</div>
-                      <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaComfortable))} per fortnight</div>
+                    <button className={`preset-btn ${form.spendingAnnual === activeAsfaComfortable ? 'active' : ''}`} onClick={() => setAsfaPreset(activeAsfaComfortable)}>
+                      <div className="preset-name">ASFA Comfortable{hasPartner ? ' (couple)' : ''}</div>
+                      <div className="preset-amount">{formatCurrency(activeAsfaComfortable)}</div>
+                      <div className="preset-freq">{formatCurrency(annualToFortnightly(activeAsfaComfortable))} per fortnight</div>
                     </button>
-                    <button className={`preset-btn ${form.spendingAnnual === asfaModest ? 'active' : ''}`} onClick={() => setAsfaPreset(asfaModest)}>
-                      <div className="preset-name">ASFA Modest</div>
-                      <div className="preset-amount">{formatCurrency(asfaModest)}</div>
-                      <div className="preset-freq">{formatCurrency(annualToFortnightly(asfaModest))} per fortnight</div>
+                    <button className={`preset-btn ${form.spendingAnnual === activeAsfaModest ? 'active' : ''}`} onClick={() => setAsfaPreset(activeAsfaModest)}>
+                      <div className="preset-name">ASFA Modest{hasPartner ? ' (couple)' : ''}</div>
+                      <div className="preset-amount">{formatCurrency(activeAsfaModest)}</div>
+                      <div className="preset-freq">{formatCurrency(annualToFortnightly(activeAsfaModest))} per fortnight</div>
                     </button>
                   </div>
                   <div className="spend-grid">
                     <div>
                       <label className="field-label">Annual spending</label>
-                      <input className="field-input" type="text" inputMode="decimal" placeholder={`e.g. ${formatCurrency(asfaComfortable)}`} value={form.spendingAnnualDisplay} onChange={e => handleSpendingAnnual(e.target.value)} onBlur={handleSpendingAnnualBlur} />
+                      <input className="field-input" type="text" inputMode="decimal" placeholder={`e.g. ${formatCurrency(activeAsfaComfortable)}`} value={form.spendingAnnualDisplay} onChange={e => handleSpendingAnnual(e.target.value)} onBlur={handleSpendingAnnualBlur} />
                     </div>
                     <div className="spend-divider">↔</div>
                     <div>
@@ -968,8 +1111,8 @@ function ForecastInputInner() {
             </div>
           )}
 
-          {/* ── Step 6 — PRE-RETIREE: confirm ────────────────────────────────── */}
-          {step === 6 && !isRetired && (
+          {/* ── Step 6+P — PRE-RETIREE: confirm ─────────────────────────────── */}
+          {step === 6 + P && !isRetired && (
             <div>
               <h1 className="step-heading">Almost there,<br />{form.name}.</h1>
               <p className="step-sub">Check your details below, read the disclaimer, then run your forecast.</p>
@@ -978,13 +1121,15 @@ function ForecastInputInner() {
                 <div className="review-section-head">Personal <button className="review-edit-btn" onClick={() => { setError(''); setStep(1); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Name</span><span className="review-val">{form.name}</span></div>
                 <div className="review-row"><span className="review-key">Current age</span><span className="review-val">{form.currentAge}</span></div>
-                <div className="review-section-head">Superannuation <button className="review-edit-btn" onClick={() => { setError(''); setStep(3); }}>Edit →</button></div>
-                <div className="review-row"><span className="review-key">Current balance</span><span className="review-val">{formatCurrency(form.superBalance)}</span></div>
+                <div className="review-section-head">Superannuation <button className="review-edit-btn" onClick={() => { setError(''); setStep(3 + P); }}>Edit →</button></div>
+                <div className="review-row"><span className="review-key">Your super balance</span><span className="review-val">{formatCurrency(form.superBalance)}</span></div>
+                {hasPartner && <div className="review-row"><span className="review-key">Partner's super balance</span><span className="review-val">{formatCurrency(form.partnerSuperBalance)}</span></div>}
                 {form.salary && <div className="review-row"><span className="review-key">Annual salary</span><span className="review-val">{formatCurrency(form.salary)}</span></div>}
                 {sgAmount !== null && <div className="review-row"><span className="review-key">SG contributions (after 15% tax)</span><span className="review-val">{formatCurrency(sgAmount * 0.85)}/fn · {formatCurrency(sgAnnual(form.salary) * 0.85)}/yr</span></div>}
                 {form.salarySacrifice && <div className="review-row"><span className="review-key">Salary sacrifice (after 15% tax)</span><span className="review-val">{formatCurrency(parseFloat(form.salarySacrifice) * 0.85)}/yr</span></div>}
                 {form.ncc && <div className="review-row"><span className="review-key">Non-concessional contributions</span><span className="review-val">{formatCurrency(form.ncc)}/yr</span></div>}
-                <div className="review-section-head">Retirement plan <button className="review-edit-btn" onClick={() => { setError(''); setStep(4); }}>Edit →</button></div>
+                {hasPartner && form.partnerSalary && <div className="review-row"><span className="review-key">Partner's salary</span><span className="review-val">{formatCurrency(form.partnerSalary)}</span></div>}
+                <div className="review-section-head">Retirement plan <button className="review-edit-btn" onClick={() => { setError(''); setStep(4 + P); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Forecast type</span><span className="review-val">{forecastMode === 'safe_spending' ? 'Safe Spending' : 'Traditional'}</span></div>
                 <div className="review-row"><span className="review-key">Target retirement age</span><span className="review-val">{form.retirementAge}</span></div>
                 <div className="review-row"><span className="review-key">Age Pension eligibility</span><span className="review-val">Age 67</span></div>
@@ -994,7 +1139,7 @@ function ForecastInputInner() {
                 }
                 <div className="review-section-head">Assumptions (defaults)</div>
                 <div className="review-row"><span className="review-key">Homeowner</span><span className="review-val">Yes</span></div>
-                <div className="review-row"><span className="review-key">Relationship status</span><span className="review-val">Single</span></div>
+                <div className="review-row"><span className="review-key">Relationship status</span><span className="review-val">{hasPartner ? 'Couple' : 'Single'}</span></div>
                 <div className="review-row"><span className="review-key">Modelled to age</span><span className="review-val">90</span></div>
               </div>
 
