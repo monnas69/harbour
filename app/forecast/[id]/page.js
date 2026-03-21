@@ -286,6 +286,7 @@ export default function ForecastResultPage() {
         <span className="hf-nav-user">
           {name ? <>Viewing <span>{name}'s forecast</span></> : <>Viewing <span>your forecast</span></>}
         </span>
+        <button className="hf-btn-outline" onClick={() => router.push(`/forecast/${id}/pdf`)}>⎙ PDF report</button>
         <button className="hf-btn-outline" onClick={() => router.push('/forecast/new')}>✎ New forecast</button>
         <button className="hf-btn-outline" onClick={() => { window.location.href = '/dashboard'; }}>Dashboard</button>
       </div>
