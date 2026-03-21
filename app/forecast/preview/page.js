@@ -504,7 +504,7 @@ export default function ForecastPreviewPage() {
               </div>
             </div>
             <div className="hf-chart-wrap"><canvas ref={chartRef} /></div>
-            <div className="hf-chart-note">All values in today's dollars (2.5% inflation adjustment) · 1,000 simulated scenarios · {inputs.has_partner ? 'Couple homeowner' : 'Single homeowner'} · Returns net of 0.67% p.a. fees</div>
+            <div className="hf-chart-note">All values in today's dollars (2.5% inflation adjustment) · 1,000 simulated scenarios · {inputs.has_partner ? 'Couple homeowner' : 'Single homeowner'} · Returns net of fees and tax</div>
           </div>
 
           {/* Summary */}
