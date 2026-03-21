@@ -114,6 +114,8 @@ function ForecastInputInner() {
     partnerSalaryDisplay: '',
     partnerSalarySacrifice: '',
     partnerSalarySacrificeDisplay: '',
+    partnerNcc: '',
+    partnerNccDisplay: '',
   });
 
   useEffect(() => {
@@ -334,6 +336,15 @@ function ForecastInputInner() {
     if (form.partnerSalarySacrifice !== '') setForm(f => ({ ...f, partnerSalarySacrificeDisplay: formatCurrency(f.partnerSalarySacrifice) }));
   };
 
+  const handlePartnerNcc = (raw) => {
+    const num = parseCurrency(raw);
+    setForm(f => ({ ...f, partnerNccDisplay: raw, partnerNcc: num === '' ? '' : num }));
+    setError('');
+  };
+  const handlePartnerNccBlur = () => {
+    if (form.partnerNcc !== '') setForm(f => ({ ...f, partnerNccDisplay: formatCurrency(f.partnerNcc) }));
+  };
+
   const setAsfaPreset = (annual) => {
     const fn = annualToFortnightly(annual);
     setForm(f => ({
@@ -368,7 +379,7 @@ function ForecastInputInner() {
         partner_super_balance:    hasPartner ? (parseFloat(form.partnerSuperBalance) || 0) : 0,
         partner_salary:           hasPartner && !isRetired ? (parseFloat(form.partnerSalary) || 0) : 0,
         partner_salary_sacrifice: hasPartner && !isRetired ? (parseFloat(form.partnerSalarySacrifice) || 0) : 0,
-        partner_ncc:              0,
+        partner_ncc:              hasPartner && !isRetired ? (parseFloat(form.partnerNcc) || 0) : 0,
       };
 
       let endpoint, payload;
@@ -712,6 +723,11 @@ function ForecastInputInner() {
                     <label className="field-label">Partner's salary sacrifice <span className="optional-tag">(optional)</span></label>
                     <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $5,000" value={form.partnerSalarySacrificeDisplay} onChange={e => handlePartnerSalarySacrifice(e.target.value)} onBlur={handlePartnerSalarySacrificeBlur} />
                     <p className="field-hint">Annual pre-tax amount your partner salary sacrifices into super.</p>
+                  </div>
+                  <div className="field-group">
+                    <label className="field-label">Partner's non-concessional contributions <span className="optional-tag">(optional)</span></label>
+                    <input className="field-input" type="text" inputMode="decimal" placeholder="e.g. $10,000" value={form.partnerNccDisplay} onChange={e => handlePartnerNcc(e.target.value)} onBlur={handlePartnerNccBlur} />
+                    <p className="field-hint">Annual after-tax amount your partner contributes from their own savings.</p>
                   </div>
                 </>
               )}
@@ -1129,6 +1145,7 @@ function ForecastInputInner() {
                 {form.salarySacrifice && <div className="review-row"><span className="review-key">Salary sacrifice (after 15% tax)</span><span className="review-val">{formatCurrency(parseFloat(form.salarySacrifice) * 0.85)}/yr</span></div>}
                 {form.ncc && <div className="review-row"><span className="review-key">Non-concessional contributions</span><span className="review-val">{formatCurrency(form.ncc)}/yr</span></div>}
                 {hasPartner && form.partnerSalary && <div className="review-row"><span className="review-key">Partner's salary</span><span className="review-val">{formatCurrency(form.partnerSalary)}</span></div>}
+                {hasPartner && form.partnerNcc && <div className="review-row"><span className="review-key">Partner's non-concessional contributions</span><span className="review-val">{formatCurrency(form.partnerNcc)}/yr</span></div>}
                 <div className="review-section-head">Retirement plan <button className="review-edit-btn" onClick={() => { setError(''); setStep(4 + P); }}>Edit →</button></div>
                 <div className="review-row"><span className="review-key">Forecast type</span><span className="review-val">{forecastMode === 'safe_spending' ? 'Safe Spending' : 'Traditional'}</span></div>
                 <div className="review-row"><span className="review-key">Target retirement age</span><span className="review-val">{form.retirementAge}</span></div>
