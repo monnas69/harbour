@@ -1,455 +1,339 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 
-const fmt = (val) => {
-  if (val === null || val === undefined) return '—';
-  if (val >= 1_000_000) return '$' + (val / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + 'm';
-  if (val >= 1_000) return '$' + Math.round(val / 1_000) + 'k';
-  return '$' + Math.round(val).toLocaleString('en-AU');
-};
-
-const fmtFull = (val) =>
-  new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(val ?? 0);
-
-function deflateScalar(nominalVal, years, inflation = 0.025) {
-  if (years <= 0 || !nominalVal) return nominalVal;
-  return Math.round(nominalVal / Math.pow(1 + inflation, years));
-}
+const A = (v) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(v ?? 0);
+const K = (v) => { if (!v && v !== 0) return '—'; if (v >= 1e6) return '$' + (v/1e6).toFixed(2).replace(/\.?0+$/,'')+'m'; if (v >= 1e3) return '$'+Math.round(v/1e3)+'k'; return '$'+Math.round(v); };
+const deflate = (v, yrs, r=0.025) => (!v || yrs<=0) ? v : Math.round(v / Math.pow(1+r, yrs));
 
 export default function ForecastPdfPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [forecast, setForecast] = useState(null);
+  const [fc, setFc] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [err, setErr] = useState('');
 
   useEffect(() => {
-    async function load() {
+    (async () => {
       try {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        const sb = createClient();
+        const { data: { session } } = await sb.auth.getSession();
         if (!session) { router.push('/auth/login'); return; }
-        const { data, error: dbErr } = await supabase
-          .from('forecasts').select('*').eq('id', id).single();
-        if (dbErr || !data) throw new Error('Forecast not found.');
-        setForecast(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+        const { data, error } = await sb.from('forecasts').select('*').eq('id', id).single();
+        if (error || !data) throw new Error('Forecast not found.');
+        setFc(data);
+      } catch (e) { setErr(e.message); }
+      finally { setLoading(false); }
+    })();
   }, [id, router]);
 
-  if (loading) return <div style={S.loading}>Loading…</div>;
-  if (error) return <div style={S.loading}>{error}</div>;
+  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'sans-serif',color:'#666'}}>Loading…</div>;
+  if (err) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',fontFamily:'sans-serif',color:'#c00'}}>{err}</div>;
 
-  const inputs  = forecast.inputs  || {};
-  const outputs = forecast.outputs || {};
+  const inp = fc.inputs || {};
+  const out = fc.outputs || {};
+  const name       = fc.name?.trim() || inp.name?.trim() || 'Client';
+  const curAge     = inp.current_age;
+  const supBal     = inp.super_balance;
+  const retAge     = inp.retirement_age;
+  const spend      = inp.annual_spending;
+  const salary     = inp.salary || 0;
+  const salsac     = inp.salary_sacrifice || 0;
+  const ncc        = inp.ncc || 0;
+  const isSafe     = (inp.mode || 'traditional') === 'safe_spending';
+  const horizon    = out.target_horizon || inp.target_horizon || 90;
+  const ytr        = retAge - curAge;
+  const retBal     = deflate(out.retirement_balance_median, ytr);
+  const penAnnual  = out.pension_annual || 0;
+  const penFn      = penAnnual ? Math.round(penAnnual/26) : 0;
+  const penFromAge = out.pension_eligible_from_age;
+  const flP10      = out.funds_last_p10;
+  const flP50      = out.funds_last_p50;
+  const flP90      = out.funds_last_p90;
+  const safeCons   = out.safe_spending_conservative;
+  const safeBal    = out.safe_spending_balanced;
+  const safeAgg    = out.safe_spending_aggressive;
+  const ages       = out.ages || [];
+  const p10        = out.p10  || [];
+  const p50        = out.p50  || [];
+  const p90        = out.p90  || [];
+  const spending   = isSafe ? safeBal : spend;
+  const superIncome = spending - penAnnual > 0 ? spending - penAnnual : 0;
+  const createdAt  = new Date(fc.created_at).toLocaleDateString('en-AU', {day:'numeric',month:'long',year:'numeric'});
+  const refNo      = String(id).slice(0,8).toUpperCase();
+  const sgAnnual   = salary ? Math.round(salary * 0.12) : 0;
+  const totalContr = sgAnnual + salsac + ncc;
+  // milestone ages for projection table — every 5 years between curAge and horizon
+  const tableAges = [];
+  for (let a = curAge; a <= Math.max(horizon, flP90 || horizon); a++) {
+    if (a === curAge || a === retAge || a === 67 || a % 5 === 0 || a === horizon || a === flP50) tableAges.push(a);
+  }
+  const uniq = [...new Set(tableAges)].sort((a,b)=>a-b);
 
-  const name           = forecast.name?.trim() || inputs.name?.trim() || 'Client';
-  const currentAge     = inputs.current_age;
-  const superBalance   = inputs.super_balance;
-  const retirementAge  = inputs.retirement_age;
-  const annualSpending = inputs.annual_spending;
-  const isSafe         = (inputs.mode || 'traditional') === 'safe_spending';
-  const targetHorizon  = outputs.target_horizon || inputs.target_horizon || 90;
-  const yearsToRet     = retirementAge - currentAge;
+  return (<>
+    <style>{CSS}</style>
+    <div className="doc">
 
-  const retBalNominal = outputs.retirement_balance_median;
-  const retBalReal    = deflateScalar(retBalNominal, yearsToRet);
-
-  const pensionAnnual     = outputs.pension_annual;
-  const pensionFortnightly = pensionAnnual ? Math.round(pensionAnnual / 26) : null;
-  const pensionFromAge    = outputs.pension_eligible_from_age;
-
-  const fundsLastP10 = outputs.funds_last_p10;
-  const fundsLastP50 = outputs.funds_last_p50;
-  const fundsLastP90 = outputs.funds_last_p90;
-
-  const safeConservative = outputs.safe_spending_conservative;
-  const safeBalanced     = outputs.safe_spending_balanced;
-  const safeAggressive   = outputs.safe_spending_aggressive;
-
-  const createdAt = new Date(forecast.created_at).toLocaleDateString('en-AU', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  });
-
-  // ── Milestone table rows ──────────────────────────────────────────────────
-  const ages    = outputs.ages || [];
-  const p50vals = outputs.p50  || [];
-  const milestones = [retirementAge, 67, 70, 75, 80, 85, 90, targetHorizon]
-    .filter((a, i, arr) => a && a >= currentAge && arr.indexOf(a) === i)
-    .sort((a, b) => a - b)
-    .map((age) => {
-      const idx = ages.indexOf(age);
-      const val = idx >= 0 ? p50vals[idx] : null;
-      const real = val ? deflateScalar(val, age - currentAge) : null;
-      return { age, real };
-    });
-
-  return (
-    <>
-      <style>{css}</style>
-      <div className="pdf-root">
-
-        {/* ── Page 1: Cover ──────────────────────────────────────────────── */}
-        <div className="pdf-page cover-page">
-          <div className="cover-logo">
-            <svg width="44" height="44" viewBox="0 0 36 36" fill="none">
-              <circle cx="18" cy="18" r="17" stroke="#c9a84c" strokeWidth="1.2"/>
-              <line x1="18" y1="7" x2="18" y2="29" stroke="#c9a84c" strokeWidth="1.5"/>
-              <line x1="11" y1="14" x2="25" y2="14" stroke="#c9a84c" strokeWidth="1.5"/>
-              <path d="M11 29 Q18 24 25 29" stroke="#c9a84c" strokeWidth="1.5" fill="none"/>
-            </svg>
-            <span className="cover-logo-text">Harbour</span>
-          </div>
-
-          <div className="cover-body">
-            <div className="cover-tag">Retirement Forecast Report</div>
-            <h1 className="cover-name">{name}</h1>
-            <div className="cover-sub">Prepared {createdAt}</div>
-          </div>
-
-          <div className="cover-summary-grid">
-            <div className="cover-stat">
-              <div className="cover-stat-label">Current age</div>
-              <div className="cover-stat-value">{currentAge}</div>
-            </div>
-            <div className="cover-stat">
-              <div className="cover-stat-label">Retirement age</div>
-              <div className="cover-stat-value">{retirementAge}</div>
-            </div>
-            <div className="cover-stat">
-              <div className="cover-stat-label">Current super</div>
-              <div className="cover-stat-value">{fmt(superBalance)}</div>
-            </div>
-            <div className="cover-stat">
-              <div className="cover-stat-label">Target horizon</div>
-              <div className="cover-stat-value">Age {targetHorizon}</div>
-            </div>
-          </div>
-
-          <div className="cover-mode-badge">
-            {isSafe ? 'Safe Spending Mode' : 'Traditional Spending Mode'}
-          </div>
-
-          <div className="cover-footer">
-            General information only · Not financial advice · For personal use
-          </div>
+      {/* ── COVER ── */}
+      <div className="page cover">
+        <div className="cover-rule" />
+        <div className="cover-label">RETIREMENT FORECAST REPORT</div>
+        <div className="cover-name">{name}</div>
+        <div className="cover-meta">
+          <span>Prepared {createdAt}</span>
+          <span>Reference&nbsp;{refNo}</span>
+          <span>{isSafe ? 'Safe Spending Mode' : 'Traditional Mode'}</span>
         </div>
-
-        {/* ── Page 2: Retirement at a glance ─────────────────────────────── */}
-        <div className="pdf-page">
-          <div className="page-header">
-            <span className="page-header-title">Retirement at a Glance</span>
-            <span className="page-header-name">{name}</span>
-          </div>
-
-          <p className="section-intro">
-            The figures below reflect the median (50th percentile) projection, expressed in
-            today's dollars using 2.5% p.a. inflation.
-          </p>
-
-          <div className="kpi-grid">
-            <div className="kpi-card highlight">
-              <div className="kpi-label">Projected super at retirement (real)</div>
-              <div className="kpi-value">{fmt(retBalReal)}</div>
-              <div className="kpi-sub">Median · age {retirementAge} · today's dollars</div>
+        <div className="cover-rule" style={{marginTop:40}} />
+        <div className="cover-stats">
+          {[
+            ['Current age', curAge],
+            ['Retirement age', retAge],
+            ['Target horizon', 'Age '+horizon],
+            ['Current super', K(supBal)],
+            ['Ret. balance (est.)', K(retBal)],
+            [isSafe ? 'Balanced spending' : 'Spending target', K(spending)],
+            ['Age Pension (p.a.)', penAnnual > 0 ? K(penAnnual) : 'Not eligible at 67'],
+            ['Funds last to', 'Age '+(flP50||'—')],
+          ].map(([l,v]) => (
+            <div key={l} className="cover-stat">
+              <div className="cover-stat-l">{l}</div>
+              <div className="cover-stat-v">{v}</div>
             </div>
-            <div className="kpi-card">
-              <div className="kpi-label">{isSafe ? 'Balanced safe spending' : 'Annual spending target'}</div>
-              <div className="kpi-value">{fmt(isSafe ? safeBalanced : annualSpending)}</div>
-              <div className="kpi-sub">{isSafe ? 'per year (today\'s dollars)' : 'per year as entered'}</div>
-            </div>
-            <div className="kpi-card">
-              <div className="kpi-label">Age Pension (annual)</div>
-              <div className="kpi-value">{pensionAnnual > 0 ? fmtFull(Math.round(pensionAnnual / 100) * 100) : 'Not eligible at 67'}</div>
-              <div className="kpi-sub">
-                {pensionAnnual > 0
-                  ? `${fmtFull(pensionFortnightly)} per fortnight from age 67`
-                  : pensionFromAge ? `Eligible from approx. age ${pensionFromAge}` : 'Based on assets & income tests'}
-              </div>
-            </div>
-            <div className="kpi-card">
-              <div className="kpi-label">Funds last to (median)</div>
-              <div className="kpi-value">Age {fundsLastP50 || '—'}</div>
-              <div className="kpi-sub">
-                Pessimistic: age {fundsLastP10 || '—'} · Optimistic: age {fundsLastP90 || '—'}
-              </div>
-            </div>
-          </div>
-
-          {isSafe && (
-            <>
-              <h2 className="section-h2">Safe Spending Scenarios</h2>
-              <table className="pdf-table">
-                <thead>
-                  <tr>
-                    <th>Scenario</th>
-                    <th>Annual Income</th>
-                    <th>Monthly</th>
-                    <th>Fortnightly</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Conservative</td>
-                    <td>{fmt(safeConservative)}</td>
-                    <td>{fmt(safeConservative ? Math.round(safeConservative / 12) : null)}</td>
-                    <td>{fmt(safeConservative ? Math.round(safeConservative / 26) : null)}</td>
-                  </tr>
-                  <tr className="row-highlight">
-                    <td><strong>Balanced</strong></td>
-                    <td><strong>{fmt(safeBalanced)}</strong></td>
-                    <td><strong>{fmt(safeBalanced ? Math.round(safeBalanced / 12) : null)}</strong></td>
-                    <td><strong>{fmt(safeBalanced ? Math.round(safeBalanced / 26) : null)}</strong></td>
-                  </tr>
-                  <tr>
-                    <td>Aggressive</td>
-                    <td>{fmt(safeAggressive)}</td>
-                    <td>{fmt(safeAggressive ? Math.round(safeAggressive / 12) : null)}</td>
-                    <td>{fmt(safeAggressive ? Math.round(safeAggressive / 26) : null)}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <p className="table-note">All figures in today's dollars. Includes projected Age Pension entitlement where applicable.</p>
-            </>
-          )}
+          ))}
         </div>
-
-        {/* ── Page 3: Milestone projections ──────────────────────────────── */}
-        <div className="pdf-page">
-          <div className="page-header">
-            <span className="page-header-title">Projected Super Balance by Age</span>
-            <span className="page-header-name">{name}</span>
-          </div>
-
-          <p className="section-intro">
-            Median projected superannuation balance at key ages, expressed in today's dollars.
-            Results are modelled projections — not guaranteed outcomes.
-          </p>
-
-          <table className="pdf-table">
-            <thead>
-              <tr>
-                <th>Age</th>
-                <th>Balance (today's $)</th>
-                <th>Note</th>
-              </tr>
-            </thead>
-            <tbody>
-              {milestones.map(({ age, real }) => (
-                <tr key={age} className={age === retirementAge ? 'row-highlight' : ''}>
-                  <td>Age {age}</td>
-                  <td>{real ? fmt(real) : '—'}</td>
-                  <td style={{ color: '#8a9bb0', fontSize: 11 }}>
-                    {age === retirementAge ? 'Retirement' : age === 67 ? 'Age Pension eligibility' : age === targetHorizon ? 'Target horizon' : ''}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="table-note">
-            Median scenario (50th percentile). Deflated using 2.5% p.a. inflation. Does not include Age Pension income.
-          </p>
-
-          <h2 className="section-h2">Outcome Range Summary</h2>
-          <table className="pdf-table">
-            <thead>
-              <tr>
-                <th>Scenario</th>
-                <th>Funds last to age</th>
-                <th>Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Pessimistic (10th %ile)</td>
-                <td>{fundsLastP10 || '—'}</td>
-                <td style={{ color: '#8a9bb0', fontSize: 11 }}>Poor market returns</td>
-              </tr>
-              <tr className="row-highlight">
-                <td><strong>Median (50th %ile)</strong></td>
-                <td><strong>{fundsLastP50 || '—'}</strong></td>
-                <td style={{ color: '#8a9bb0', fontSize: 11 }}>Expected outcome</td>
-              </tr>
-              <tr>
-                <td>Optimistic (90th %ile)</td>
-                <td>{fundsLastP90 || '—'}</td>
-                <td style={{ color: '#8a9bb0', fontSize: 11 }}>Strong market returns</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* ── Page 4: Inputs & Assumptions ───────────────────────────────── */}
-        <div className="pdf-page">
-          <div className="page-header">
-            <span className="page-header-title">Inputs &amp; Assumptions</span>
-            <span className="page-header-name">{name}</span>
-          </div>
-
-          <h2 className="section-h2">Your Inputs</h2>
-          <table className="pdf-table">
-            <tbody>
-              <tr><td>Current age</td><td>{currentAge}</td></tr>
-              <tr><td>Retirement age</td><td>{retirementAge}</td></tr>
-              <tr><td>Target horizon</td><td>Age {targetHorizon}</td></tr>
-              <tr><td>Current super balance</td><td>{fmtFull(superBalance)}</td></tr>
-              {!isSafe && <tr><td>Annual spending target</td><td>{fmtFull(annualSpending)}</td></tr>}
-              <tr><td>Forecast mode</td><td>{isSafe ? 'Safe Spending' : 'Traditional'}</td></tr>
-              {inputs.employer_contributions != null && (
-                <tr><td>Employer contributions (% salary)</td><td>{inputs.employer_contributions}%</td></tr>
-              )}
-              {inputs.salary != null && (
-                <tr><td>Current salary</td><td>{fmtFull(inputs.salary)}</td></tr>
-              )}
-              {inputs.extra_contributions != null && inputs.extra_contributions > 0 && (
-                <tr><td>Extra contributions (annual)</td><td>{fmtFull(inputs.extra_contributions)}</td></tr>
-              )}
-            </tbody>
-          </table>
-
-          <h2 className="section-h2">Model Assumptions</h2>
-          <table className="pdf-table">
-            <tbody>
-              <tr><td>Investment return (nominal)</td><td>7.0% p.a.</td></tr>
-              <tr><td>Investment fees</td><td>0.5% p.a.</td></tr>
-              <tr><td>Inflation</td><td>2.5% p.a.</td></tr>
-              <tr><td>Monte Carlo simulations</td><td>1,000 paths</td></tr>
-              <tr><td>Age Pension basis</td><td>Current Centrelink rates & thresholds</td></tr>
-              <tr><td>Tax treatment</td><td>Super in accumulation to retirement; pension phase from retirement age</td></tr>
-            </tbody>
-          </table>
-
-          <div className="disclaimer-box">
-            <strong>Important:</strong> This report is for general information purposes only and does not
-            constitute financial advice. Results are modelled projections based on the assumptions above
-            and are not guaranteed. Superannuation laws, tax rules, and Centrelink means tests change
-            regularly. Always verify your personal circumstances with a licensed financial adviser or
-            Services Australia before making retirement decisions.
-          </div>
-
-          <div className="pdf-footer">
-            <span>Harbour · harbour.finance</span>
-            <span>Generated {createdAt}</span>
-          </div>
-        </div>
-
+        <div className="cover-rule" />
+        <div className="cover-footer">Prepared by Harbour · harbour.finance · General information only — not financial advice</div>
       </div>
 
-      {/* Print button — hidden on print */}
-      <div className="print-controls no-print">
-        <button onClick={() => window.print()} className="print-btn">Print / Save as PDF</button>
-        <button onClick={() => router.back()} className="back-btn">← Back</button>
+      {/* ── PAGE 2: EXECUTIVE SUMMARY ── */}
+      <div className="page">
+        <div className="page-hd"><span>Executive Summary</span><span>{name} · {refNo}</span></div>
+
+        <div className="section-title">Retirement at a Glance</div>
+        <table className="kv-table"><tbody>
+          <tr><td>Projected super balance at retirement (age {retAge}, median, today's $)</td><td className="val">{K(retBal)}</td></tr>
+          <tr><td>Nominal projected balance at retirement (before inflation adjustment)</td><td className="val">{K(out.retirement_balance_median)}</td></tr>
+          <tr><td>{isSafe ? 'Recommended annual spending — balanced scenario' : 'Target annual retirement spending'}</td><td className="val">{K(spending)}</td></tr>
+          <tr><td>Estimated annual Age Pension entitlement (current Centrelink rates)</td><td className="val">{penAnnual > 0 ? A(Math.round(penAnnual/100)*100) : 'Not eligible at age 67'}</td></tr>
+          {penAnnual > 0 && <tr><td>Age Pension (fortnightly)</td><td className="val">{A(penFn)}</td></tr>}
+          {penFromAge && penAnnual === 0 && <tr><td>Estimated age at which pension becomes payable (as balance depletes)</td><td className="val">Age {penFromAge}</td></tr>}
+          <tr><td>Estimated annual super drawdown required (spending less pension)</td><td className="val">{K(superIncome)}</td></tr>
+          <tr><td>Pension as share of total retirement income</td><td className="val">{spending > 0 && penAnnual > 0 ? Math.round(penAnnual/spending*100)+'%' : '0%'}</td></tr>
+        </tbody></table>
+
+        <div className="section-title" style={{marginTop:28}}>Outcome Range — When Do Funds Run Out?</div>
+        <table className="data-table"><thead><tr>
+          <th>Scenario</th><th>Percentile</th><th>Description</th><th>Funds last to</th>
+        </tr></thead><tbody>
+          <tr><td>Pessimistic</td><td>10th %ile</td><td>Poor investment returns over retirement</td><td className="val">{flP10 ? 'Age '+flP10 : '—'}</td></tr>
+          <tr className="hl"><td><b>Median</b></td><td><b>50th %ile</b></td><td><b>Expected (average) outcome</b></td><td className="val"><b>{flP50 ? 'Age '+flP50 : '—'}</b></td></tr>
+          <tr><td>Optimistic</td><td>90th %ile</td><td>Strong investment returns over retirement</td><td className="val">{flP90 ? 'Age '+flP90 : '—'}</td></tr>
+        </tbody></table>
+
+        {isSafe && (<>
+          <div className="section-title" style={{marginTop:28}}>Safe Spending Scenarios</div>
+          <table className="data-table"><thead><tr>
+            <th>Scenario</th><th>Annual</th><th>Monthly</th><th>Fortnightly</th><th>Weekly</th>
+          </tr></thead><tbody>
+            <tr><td>Conservative</td><td className="val">{K(safeCons)}</td><td className="val">{K(safeCons&&Math.round(safeCons/12))}</td><td className="val">{K(safeCons&&Math.round(safeCons/26))}</td><td className="val">{K(safeCons&&Math.round(safeCons/52))}</td></tr>
+            <tr className="hl"><td><b>Balanced</b></td><td className="val"><b>{K(safeBal)}</b></td><td className="val"><b>{K(safeBal&&Math.round(safeBal/12))}</b></td><td className="val"><b>{K(safeBal&&Math.round(safeBal/26))}</b></td><td className="val"><b>{K(safeBal&&Math.round(safeBal/52))}</b></td></tr>
+            <tr><td>Aggressive</td><td className="val">{K(safeAgg)}</td><td className="val">{K(safeAgg&&Math.round(safeAgg/12))}</td><td className="val">{K(safeAgg&&Math.round(safeAgg/26))}</td><td className="val">{K(safeAgg&&Math.round(safeAgg/52))}</td></tr>
+          </tbody></table>
+          <p className="footnote">All figures in today's dollars. Includes estimated Age Pension from age 67 where applicable. Balanced scenario targets funds lasting to age {horizon}.</p>
+        </>)}
+
+        {!isSafe && (<>
+          <div className="section-title" style={{marginTop:28}}>Annual Income Gap Analysis</div>
+          <table className="kv-table"><tbody>
+            <tr><td>Target annual spending</td><td className="val">{K(spend)}</td></tr>
+            <tr><td>Less: estimated Age Pension (annual)</td><td className="val">{K(penAnnual)}</td></tr>
+            <tr><td>Required annual super drawdown</td><td className="val">{K(superIncome)}</td></tr>
+            <tr><td>Drawdown as % of retirement balance (median)</td><td className="val">{retBal > 0 ? (superIncome/retBal*100).toFixed(1)+'%' : '—'}</td></tr>
+            {salary > 0 && <tr><td>Spending as % of pre-retirement salary (replacement rate)</td><td className="val">{(spend/salary*100).toFixed(0)+'%'}</td></tr>}
+          </tbody></table>
+        </>)}
       </div>
-    </>
-  );
+
+      {/* ── PAGE 3: PROJECTED BALANCE TABLE ── */}
+      <div className="page">
+        <div className="page-hd"><span>Projected Super Balance by Age</span><span>{name} · {refNo}</span></div>
+        <p className="intro">Median (50th percentile) and range projections expressed in today's dollars (deflated at 2.5% p.a. inflation). Shaded rows mark key milestones.</p>
+
+        <table className="data-table proj-table"><thead><tr>
+          <th>Age</th><th>Year</th>
+          <th>Pessimistic (P10)</th><th>Median (P50)</th><th>Optimistic (P90)</th>
+          <th>Note</th>
+        </tr></thead><tbody>
+          {uniq.map(age => {
+            const idx = ages.indexOf(age);
+            const yr  = new Date().getFullYear() + (age - curAge);
+            const v10 = idx >= 0 ? deflate(p10[idx], age-curAge) : null;
+            const v50 = idx >= 0 ? deflate(p50[idx], age-curAge) : null;
+            const v90 = idx >= 0 ? deflate(p90[idx], age-curAge) : null;
+            const note = age === retAge ? 'Retirement' : age === 67 ? 'Pension eligibility' : age === horizon ? 'Target horizon' : age === flP50 ? 'Median funds exhaust' : '';
+            const isKey = age === retAge || age === 67 || age === horizon;
+            return (
+              <tr key={age} className={isKey ? 'hl' : ''}>
+                <td>{age}</td>
+                <td style={{color:'#888'}}>{yr}</td>
+                <td className="val">{v10 && v10 > 0 ? K(v10) : v10 === 0 ? '$0' : '—'}</td>
+                <td className="val"><b>{v50 && v50 > 0 ? K(v50) : v50 === 0 ? '$0' : '—'}</b></td>
+                <td className="val">{v90 && v90 > 0 ? K(v90) : v90 === 0 ? '$0' : '—'}</td>
+                <td style={{color:'#888',fontSize:11}}>{note}</td>
+              </tr>
+            );
+          })}
+        </tbody></table>
+        <p className="footnote">Projections use Monte Carlo simulation (1,000 paths). P10 = poor returns, P50 = median, P90 = strong returns. All values in today's dollars. Super balance drops to $0 once funds are exhausted and does not go negative — Age Pension income continues after this point.</p>
+      </div>
+
+      {/* ── PAGE 4: INPUTS, ASSUMPTIONS & DISCLAIMER ── */}
+      <div className="page">
+        <div className="page-hd"><span>Inputs, Assumptions &amp; Methodology</span><span>{name} · {refNo}</span></div>
+
+        <div className="two-col">
+          <div>
+            <div className="section-title">Your Inputs</div>
+            <table className="kv-table"><tbody>
+              <tr><td>Name</td><td className="val">{name}</td></tr>
+              <tr><td>Current age</td><td className="val">{curAge}</td></tr>
+              <tr><td>Retirement age</td><td className="val">{retAge}</td></tr>
+              <tr><td>Target horizon</td><td className="val">Age {horizon}</td></tr>
+              <tr><td>Current super balance</td><td className="val">{A(supBal)}</td></tr>
+              {!isSafe && <tr><td>Annual spending target</td><td className="val">{A(spend)}</td></tr>}
+              {isSafe && <tr><td>Forecast mode</td><td className="val">Safe Spending</td></tr>}
+              {salary > 0 && <tr><td>Current salary</td><td className="val">{A(salary)}</td></tr>}
+              {salary > 0 && <tr><td>SGC contributions (12% p.a.)</td><td className="val">{A(sgAnnual)}</td></tr>}
+              {salsac > 0 && <tr><td>Salary sacrifice (annual)</td><td className="val">{A(salsac)}</td></tr>}
+              {ncc > 0 && <tr><td>Non-concessional contributions</td><td className="val">{A(ncc)}</td></tr>}
+              {totalContr > 0 && <tr><td>Total annual contributions</td><td className="val">{A(totalContr)}</td></tr>}
+            </tbody></table>
+          </div>
+          <div>
+            <div className="section-title">Model Assumptions</div>
+            <table className="kv-table"><tbody>
+              <tr><td>Gross investment return</td><td className="val">7.0% p.a.</td></tr>
+              <tr><td>Investment management fees</td><td className="val">0.5% p.a.</td></tr>
+              <tr><td>Net investment return (accumulation)</td><td className="val">6.5% p.a.</td></tr>
+              <tr><td>CPI inflation</td><td className="val">2.5% p.a.</td></tr>
+              <tr><td>Real return (approx.)</td><td className="val">4.0% p.a.</td></tr>
+              <tr><td>Monte Carlo simulations</td><td className="val">1,000 paths</td></tr>
+              <tr><td>SGC rate</td><td className="val">12.0%</td></tr>
+              <tr><td>Tax treatment</td><td className="val">Accumulation phase to retirement; pension phase from retirement age</td></tr>
+              <tr><td>Age Pension</td><td className="val">Current Centrelink rates, assets & income tests</td></tr>
+              <tr><td>Pension indexation</td><td className="val">Indexed to CPI annually</td></tr>
+              <tr><td>Report currency</td><td className="val">AUD, today's dollars unless stated</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+
+        <div className="section-title" style={{marginTop:28}}>Key Definitions</div>
+        <table className="data-table"><thead><tr><th>Term</th><th>Definition</th></tr></thead>
+        <tbody>
+          <tr><td>Today's dollars</td><td>Nominal future values deflated to present purchasing power using 2.5% p.a. inflation</td></tr>
+          <tr><td>P10 / Pessimistic</td><td>10th percentile of simulation outcomes — 90% of simulated paths perform better than this</td></tr>
+          <tr><td>P50 / Median</td><td>50th percentile — half of simulated paths finish above, half below</td></tr>
+          <tr><td>P90 / Optimistic</td><td>90th percentile — only 10% of simulated paths perform better than this</td></tr>
+          <tr><td>Safe Spending</td><td>Maximum sustainable annual withdrawal calibrated to target age at chosen confidence level</td></tr>
+          <tr><td>Funds last to</td><td>The age at which the super balance reaches zero under each scenario</td></tr>
+        </tbody></table>
+
+        <div className="disclaimer">
+          <b>Important Disclaimer.</b> This report has been prepared by Harbour for general information purposes only. It does not constitute financial product advice and should not be relied upon as such. The projections contained in this report are estimates based on modelled assumptions and historical data — they are not guaranteed outcomes. Actual results will differ due to market movements, changes in legislation, tax rules, Centrelink means test thresholds, and personal circumstances. Superannuation and social security laws change regularly. You should always verify your personal entitlements with Services Australia and seek advice from a licensed financial adviser (AFS licensee) before making any retirement-related financial decisions. Past performance is not indicative of future performance. Harbour is not a licensed financial advice provider.
+        </div>
+
+        <div className="page-footer">
+          <span>Harbour · harbour.finance</span>
+          <span>Reference {refNo} · Generated {createdAt}</span>
+          <span>General information only — not financial advice</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div className="no-print controls">
+      <button onClick={() => window.print()}>Print / Save as PDF</button>
+      <button onClick={() => router.back()} style={{background:'#fff',color:'#333',border:'1px solid #ccc'}}>← Back</button>
+    </div>
+  </>);
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-const S = {
-  loading: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0D1F35', color: '#8a9bb0', fontFamily: 'DM Sans, sans-serif' },
-};
-
-const css = `
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
-
+const CSS = `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #e8e8e8; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; }
+.doc { max-width: 860px; margin: 0 auto; padding: 32px 16px 100px; }
 
-body { background: #1a2a3a; font-family: 'DM Sans', sans-serif; }
-
-.pdf-root { max-width: 820px; margin: 0 auto; padding: 32px 16px 80px; }
-
-.pdf-page {
-  background: #0D1F35;
-  border: 1px solid rgba(201,168,76,0.15);
-  border-radius: 4px;
-  padding: 56px 64px;
-  margin-bottom: 32px;
-  min-height: 1056px;
+.page {
+  background: #fff;
+  padding: 64px 72px;
+  margin-bottom: 24px;
+  min-height: 1123px;
   position: relative;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
-/* ── Cover ── */
-.cover-page { display: flex; flex-direction: column; justify-content: space-between; }
-.cover-logo { display: flex; align-items: center; gap: 10px; }
-.cover-logo-text { font-family: 'Playfair Display', serif; font-size: 22px; color: #c9a84c; letter-spacing: 0.04em; }
-.cover-body { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 60px 0 40px; }
-.cover-tag { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #8a9bb0; margin-bottom: 18px; }
-.cover-name { font-family: 'Playfair Display', serif; font-size: 48px; font-weight: 600; color: #f5f0e8; margin-bottom: 10px; line-height: 1.15; }
-.cover-sub { font-size: 14px; color: #8a9bb0; }
-.cover-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.15); border-radius: 3px; overflow: hidden; margin-bottom: 24px; }
-.cover-stat { background: rgba(13,31,53,0.98); padding: 18px 20px; }
-.cover-stat-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #8a9bb0; margin-bottom: 6px; }
-.cover-stat-value { font-size: 22px; font-weight: 600; color: #c9a84c; font-family: 'Playfair Display', serif; }
-.cover-mode-badge { display: inline-block; padding: 6px 14px; border: 1px solid rgba(201,168,76,0.3); border-radius: 20px; font-size: 11px; color: #c9a84c; letter-spacing: 0.08em; }
-.cover-footer { font-size: 10px; color: rgba(138,155,176,0.5); margin-top: 32px; text-align: center; letter-spacing: 0.06em; }
+/* Cover */
+.cover { display: flex; flex-direction: column; }
+.cover-rule { height: 2px; background: #b8963c; margin: 0; }
+.cover-label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #888; margin: 28px 0 32px; }
+.cover-name { font-family: Georgia, 'Times New Roman', serif; font-size: 52px; font-weight: normal; color: #1a1a1a; line-height: 1.1; margin-bottom: 20px; }
+.cover-meta { display: flex; gap: 32px; font-size: 12px; color: #888; margin-bottom: 40px; }
+.cover-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 28px 0; border: 1px solid #e0e0e0; }
+.cover-stat { padding: 16px 20px; border-bottom: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0; }
+.cover-stat:nth-child(even) { border-right: none; }
+.cover-stat:nth-last-child(-n+2) { border-bottom: none; }
+.cover-stat-l { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 5px; }
+.cover-stat-v { font-size: 20px; font-family: Georgia, serif; color: #1a1a1a; }
+.cover-footer { font-size: 10px; color: #aaa; margin-top: 28px; text-align: center; letter-spacing: 0.04em; }
 
-/* ── Page header ── */
-.page-header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; border-bottom: 1px solid rgba(201,168,76,0.2); margin-bottom: 28px; }
-.page-header-title { font-family: 'Playfair Display', serif; font-size: 22px; color: #f5f0e8; }
-.page-header-name { font-size: 12px; color: #8a9bb0; }
+/* Page header */
+.page-hd { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 28px; }
+.page-hd > span:first-child { font-family: Georgia, serif; font-size: 20px; color: #1a1a1a; }
+.page-hd > span:last-child { font-size: 11px; color: #888; }
 
-/* ── Section ── */
-.section-intro { font-size: 13px; color: #8a9bb0; line-height: 1.65; margin-bottom: 28px; }
-.section-h2 { font-family: 'Playfair Display', serif; font-size: 16px; color: #c9a84c; margin: 32px 0 14px; }
+.section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.13em; color: #b8963c; border-bottom: 1px solid #e8e8e8; padding-bottom: 6px; margin-bottom: 12px; margin-top: 4px; font-weight: 600; }
+.intro { font-size: 12.5px; color: #555; line-height: 1.6; margin-bottom: 20px; }
+.footnote { font-size: 10.5px; color: #888; margin-top: 12px; line-height: 1.6; }
 
-/* ── KPI grid ── */
-.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 8px; }
-.kpi-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(201,168,76,0.12); border-radius: 3px; padding: 20px 22px; }
-.kpi-card.highlight { border-color: rgba(201,168,76,0.4); background: rgba(201,168,76,0.05); }
-.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #8a9bb0; margin-bottom: 8px; }
-.kpi-value { font-size: 26px; font-family: 'Playfair Display', serif; color: #f5f0e8; margin-bottom: 6px; }
-.kpi-card.highlight .kpi-value { color: #c9a84c; }
-.kpi-sub { font-size: 11px; color: #8a9bb0; line-height: 1.5; }
+/* Tables */
+.kv-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 4px; }
+.kv-table td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; color: #333; vertical-align: top; }
+.kv-table td:first-child { color: #555; width: 68%; }
 
-/* ── Table ── */
-.pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.pdf-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: #8a9bb0; border-bottom: 1px solid rgba(201,168,76,0.2); padding: 8px 12px; font-weight: 500; }
-.pdf-table td { padding: 10px 12px; color: #d4c9b8; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
-.pdf-table tr:last-child td { border-bottom: none; }
-.pdf-table td:first-child { color: #8a9bb0; font-size: 12px; }
-.row-highlight td { background: rgba(201,168,76,0.06); }
-.row-highlight td:first-child { color: #c9a84c; }
-.table-note { font-size: 10.5px; color: rgba(138,155,176,0.7); margin-top: 10px; line-height: 1.5; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #888; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; padding: 7px 10px; font-weight: 500; background: #fafafa; }
+.data-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; color: #333; vertical-align: top; }
+.data-table tr:last-child td { border-bottom: 1px solid #ccc; }
 
-/* ── Disclaimer ── */
-.disclaimer-box { margin-top: 32px; padding: 18px 20px; border: 1px solid rgba(201,168,76,0.15); border-radius: 3px; background: rgba(201,168,76,0.04); font-size: 11.5px; color: #8a9bb0; line-height: 1.7; }
-.disclaimer-box strong { color: #c9a84c; }
+.val { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; color: #1a1a1a; }
+.hl td { background: #fdf8ee; }
+.hl td.val { color: #8a6010; }
 
-/* ── Footer ── */
-.pdf-footer { position: absolute; bottom: 32px; left: 64px; right: 64px; display: flex; justify-content: space-between; font-size: 10px; color: rgba(138,155,176,0.4); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px; }
+.proj-table th:nth-child(n+3), .proj-table td:nth-child(n+3) { text-align: right; }
 
-/* ── Print controls ── */
-.print-controls { position: fixed; bottom: 24px; right: 24px; display: flex; gap: 10px; z-index: 100; }
-.print-btn { padding: 10px 22px; background: #c9a84c; border: none; border-radius: 4px; color: #0D1F35; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
-.print-btn:hover { background: #d4b45c; }
-.back-btn { padding: 10px 22px; background: transparent; border: 1px solid rgba(201,168,76,0.3); border-radius: 4px; color: #c9a84c; font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
-.back-btn:hover { background: rgba(201,168,76,0.07); }
+/* Two-col layout */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
 
-/* ── Print ── */
+/* Disclaimer */
+.disclaimer { margin-top: 28px; padding: 16px 18px; border: 1px solid #e0e0e0; background: #fafafa; font-size: 11px; color: #666; line-height: 1.75; }
+.disclaimer b { color: #333; }
+
+/* Footer */
+.page-footer { position: absolute; bottom: 32px; left: 72px; right: 72px; display: flex; justify-content: space-between; font-size: 10px; color: #bbb; border-top: 1px solid #e8e8e8; padding-top: 10px; }
+
+/* Controls */
+.controls { position: fixed; bottom: 24px; right: 24px; display: flex; gap: 10px; z-index: 100; }
+.controls button { padding: 10px 22px; background: #1a1a1a; color: #fff; border: none; font-size: 13px; cursor: pointer; font-family: inherit; }
+.controls button:hover { background: #333; }
+
 @media print {
-  body { background: white !important; }
-  .pdf-root { max-width: 100%; padding: 0; }
-  .pdf-page { border: none; border-radius: 0; margin-bottom: 0; padding: 40px 56px; min-height: 100vh; page-break-after: always; background: white !important; color: #111 !important; }
+  body { background: white; }
+  .doc { max-width: 100%; padding: 0; }
+  .page { box-shadow: none; margin-bottom: 0; padding: 20mm 24mm; min-height: 0; page-break-after: always; }
   .no-print { display: none !important; }
-  .pdf-footer { color: #999; border-top-color: #ddd; }
-  .page-header { border-bottom-color: #ddd; }
-  .page-header-title { color: #111; }
-  .cover-name { color: #111; }
-  .cover-logo-text, .cover-stat-value, .kpi-value, .section-h2, .cover-mode-badge { color: #7a6030; }
-  .pdf-table td { color: #333; border-bottom-color: #eee; }
-  .pdf-table th { border-bottom-color: #ccc; }
-  .disclaimer-box { border-color: #ddd; background: #fafaf7; }
-  .kpi-card { border-color: #ddd; background: #fafaf7; }
-  .kpi-card.highlight { border-color: #c9a84c; background: #fffdf5; }
-  .cover-summary-grid { background: #ddd; }
-  .cover-stat { background: #fafaf7; }
+  .cover-name { font-size: 40px; }
 }
 `;
+
