@@ -211,6 +211,14 @@ function runForecast(inputs, config, options = {}) {
     retReturns.push(row);
   }
 
+  // ── Transfer Balance Cap — per person ─────────────────────────────────────
+  // Each partner has their own TBC ($1.9 M). For couples the effective combined
+  // cap is 2 × TBC so that both partners' balances can sit in the tax-free
+  // pension phase up to the full cap each. Using the single TBC against the
+  // combined balance would incorrectly leave excess in accumulation phase and
+  // over-tax couple investment earnings.
+  const effectiveTbc = tbc * (hasPartner ? 2 : 1);
+
   // ── Monte Carlo simulation ────────────────────────────────────────────────
   const allBalances = Array.from({ length: totalYears }, () =>
     new Array(runs).fill(0)
@@ -240,10 +248,10 @@ function runForecast(inputs, config, options = {}) {
 
     // ── Retirement phase ────────────────────────────────────────────────────
     // Split balance at retirement between:
-    //   penBal — tax-free pension phase (up to Transfer Balance Cap)
+    //   penBal — tax-free pension phase (up to effective TBC)
     //   accBal — accumulation phase (excess above TBC, earnings taxed at 15%)
-    let penBal = Math.min(bal, tbc);
-    let accBal = Math.max(0, bal - tbc);
+    let penBal = Math.min(bal, effectiveTbc);
+    let accBal = Math.max(0, bal - effectiveTbc);
 
     let fundsLast = longevity;
 
@@ -301,7 +309,12 @@ function runForecast(inputs, config, options = {}) {
       const newTotal = penBal + accBal;
       allBalances[accYears + y][i] = newTotal;
 
-      if (newTotal === 0 && fundsLast === longevity) {
+      // Use < 1 rather than === 0: when only the ATO minimum drawdown is being
+      // withdrawn (pension covers all spending), penBal decays geometrically
+      // and never reaches exactly zero due to floating-point arithmetic.
+      // Treating a balance below $1 as effectively depleted prevents the
+      // binary search from treating every spending level as "sustainable".
+      if (newTotal < 1 && fundsLast === longevity) {
         fundsLast = currentAge;
       }
     }
@@ -407,7 +420,10 @@ function runSafeSpending(inputs, config, targetHorizon) {
   // Higher spending → funds deplete sooner → fundsLastKey decreases.
   function findSpendingForKey(key) {
     let lo = 0;
-    let hi = Math.max(1_000_000, inputs.super_balance * 2);
+    // Use the full combined household balance as the basis for the upper bound
+    // so the bracket is correctly sized for couples with large partner balances.
+    const combinedBalance = inputs.super_balance + (inputs.partner_super_balance || 0);
+    let hi = Math.max(1_000_000, combinedBalance * 2);
 
     // Confirm hi is above the tipping point (funds run out before target at hi).
     // If not, keep doubling hi (up to a hard cap of $5 m/yr).
