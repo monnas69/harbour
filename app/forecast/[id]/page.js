@@ -419,7 +419,7 @@ export default function ForecastResultPage() {
                 </div>
               </div>
               <div className="hf-chart-wrap"><canvas ref={chartRef} /></div>
-              <div className="hf-chart-note">Balanced spending of {safeBalanced ? fmtFull(safeBalanced) : '—'}/yr · all values in today's dollars · 1,000 simulated scenarios · Single homeowner</div>
+              <div className="hf-chart-note">Balanced spending of {safeBalanced ? fmtFull(safeBalanced) : '—'}/yr · all values in today's dollars · 1,000 simulated scenarios · {inputs.has_partner ? 'Couple homeowner' : 'Single homeowner'}</div>
             </div>
 
             {/* Summary */}
@@ -525,7 +525,7 @@ export default function ForecastResultPage() {
             </div>
             <div className="hf-chart-wrap"><canvas ref={chartRef} /></div>
             <div className="hf-chart-note">
-              All values in today's dollars (2.5% inflation adjustment) · 1,000 simulated scenarios · Single homeowner · Returns net of {0.67}% p.a. fees
+              All values in today's dollars (2.5% inflation adjustment) · 1,000 simulated scenarios · {inputs.has_partner ? 'Couple homeowner' : 'Single homeowner'} · Returns net of {0.67}% p.a. fees
             </div>
           </div>
 

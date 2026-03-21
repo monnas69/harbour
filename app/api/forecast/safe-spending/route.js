@@ -32,6 +32,11 @@ export async function POST(request) {
     ncc,
     retirement_age,
     target_horizon,
+    has_partner,
+    partner_super_balance,
+    partner_salary,
+    partner_salary_sacrifice,
+    partner_ncc,
   } = body;
 
   if (!name || !current_age || super_balance == null || !retirement_age) {
@@ -73,14 +78,19 @@ export async function POST(request) {
 
   // ── Run reverse forecast
   const inputs = {
-    current_age:      Number(current_age),
-    super_balance:    Number(super_balance),
-    salary:           Number(salary) || 0,
-    salary_sacrifice: Number(salary_sacrifice) || 0,
-    ncc:              Number(ncc) || 0,
-    retirement_age:   Number(retirement_age),
+    current_age:              Number(current_age),
+    super_balance:            Number(super_balance),
+    salary:                   Number(salary) || 0,
+    salary_sacrifice:         Number(salary_sacrifice) || 0,
+    ncc:                      Number(ncc) || 0,
+    retirement_age:           Number(retirement_age),
+    has_partner:              !!has_partner,
+    partner_super_balance:    Number(partner_super_balance) || 0,
+    partner_salary:           Number(partner_salary) || 0,
+    partner_salary_sacrifice: Number(partner_salary_sacrifice) || 0,
+    partner_ncc:              Number(partner_ncc) || 0,
     // annual_spending is not user-provided — the engine solves for it
-    annual_spending:  0,
+    annual_spending:          0,
   };
 
   let outputs;

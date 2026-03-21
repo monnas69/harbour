@@ -12,24 +12,35 @@ const SECTIONS = [
     keys: ['pension_base_single', 'pension_supplement_single', 'pension_energy_single'],
   },
   {
+    id: 'pension_couple',
+    title: 'Age Pension — couple homeowner (each)',
+    sub: 'Each partner's individual rate — combined max = 2× these figures',
+    keys: ['pension_base_couple', 'pension_supplement_couple', 'pension_energy_couple'],
+  },
+  {
     id: 'assets',
     title: 'Assets test — single homeowner',
     keys: ['assets_lower_single_owner', 'assets_upper_single_owner', 'assets_taper_rate'],
   },
   {
+    id: 'assets_couple',
+    title: 'Assets test — couple homeowner (combined)',
+    keys: ['assets_lower_couple_owner', 'assets_upper_couple_owner'],
+  },
+  {
     id: 'income',
     title: 'Income test',
-    keys: ['income_free_area_single', 'income_reduction_rate'],
+    keys: ['income_free_area_single', 'income_free_area_couple', 'income_reduction_rate'],
   },
   {
     id: 'deeming',
     title: 'Deeming rates',
-    keys: ['deeming_rate_lower', 'deeming_threshold_single', 'deeming_rate_upper'],
+    keys: ['deeming_rate_lower', 'deeming_threshold_single', 'deeming_threshold_couple', 'deeming_rate_upper'],
   },
   {
     id: 'asfa',
     title: 'ASFA retirement standards',
-    keys: ['asfa_comfortable_single', 'asfa_modest_single'],
+    keys: ['asfa_comfortable_single', 'asfa_modest_single', 'asfa_comfortable_couple', 'asfa_modest_couple'],
   },
   {
     id: 'super',
@@ -57,12 +68,14 @@ const PCT_KEYS = new Set([
 // Keys that are fortnightly dollar amounts
 const FN_KEYS = new Set([
   'pension_base_single', 'pension_supplement_single', 'pension_energy_single',
-  'income_free_area_single', 'assets_taper_rate',
+  'pension_base_couple', 'pension_supplement_couple', 'pension_energy_couple',
+  'income_free_area_single', 'income_free_area_couple', 'assets_taper_rate',
 ]);
 
 // Keys that are annual dollar amounts
 const YR_KEYS = new Set([
   'asfa_comfortable_single', 'asfa_modest_single',
+  'asfa_comfortable_couple', 'asfa_modest_couple',
   'concessional_cap', 'non_concessional_cap',
 ]);
 

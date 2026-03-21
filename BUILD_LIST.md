@@ -115,8 +115,8 @@
 | **Paid tier gate — forecast limit** | *Free accounts capped at 3 saved forecasts. API returns FORECAST_LIMIT_REACHED (403) when exceeded. Plus users bypass limit via is_plus flag on profiles table* | ✓ Done |
 | **User tier management** | *profiles table live in Supabase — id, is_plus (bool), stripe_customer_id (nullable), created_at. RLS policies set. Auto-created on signup via trigger. is_plus read in /api/forecast and /profile* | ✓ Done |
 | **Pricing page** | *Live at /upgrade — Free vs Plus cards, $55/yr, feature comparison, FAQ. Stripe button replaced with disabled "Coming soon" button and hint text. Already-Plus users see active state* | ✓ Done |
-| **Partner / couples details** | *Additional input step — partner age, super, salary* | → To do |
-| **Combined Age Pension calc (couples)** | *Assets test and deeming for couple — combined thresholds* | → To do |
+| **Partner / couples details** | *Additional input step — partner age, super, salary. Combined super pool, couple ASFA presets. Partner step inserted as step 2 in both pre-retiree and retiree flows.* | ✓ Done |
+| **Combined Age Pension calc (couples)** | *Assets test and deeming for couple — combined thresholds. Couple pension max (2× each rate). Config keys: pension_base/supplement/energy_couple, assets_lower/upper_couple_owner, income_free_area_couple, deeming_threshold_couple.* | ✓ Done |
 | **PDF export** | *Paid feature — forecast summary as downloadable PDF* | → To do |
 | **Forecast re-run with pre-filled inputs** | *Dashboard ↺ button now loads saved forecast inputs into the form (all fields pre-populated) and jumps to review step, with a notice banner confirming re-run mode. User can navigate back to edit any step before re-running.* | ✓ Done |
 | **Forecast re-run prompt** | *Email via Loops when Centrelink rates update in March or September* | → To do |
@@ -185,8 +185,8 @@
 
 | Item | Notes | Status |
 |------|-------|--------|
-| **Couples config in admin dashboard** | *Add second set of rows for couple thresholds once partner feature is built — not before* | ○ Deferred |
-| **ASFA couples standards** | *Add to admin config when couples feature is built* | ○ Deferred |
+| **Couples config in admin dashboard** | *Added — couple pension, assets, income, deeming, ASFA sections now in admin* | ✓ Done |
+| **ASFA couples standards** | *Added — asfa_comfortable_couple and asfa_modest_couple config keys added* | ✓ Done |
 | **Non-homeowner thresholds** | *Add non-homeowner rows when user profile is expanded* | ○ Deferred |
 | **Other assets (shares, property, savings)** | *Out of MVP scope — significant additional inputs and Centrelink calc complexity* | ○ Deferred |
 | **Defined benefit pensions** | *Separate income stream treatment — deferred post-MVP* | ○ Deferred |

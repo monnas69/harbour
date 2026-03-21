@@ -101,17 +101,31 @@ function calculatePension(
 
 // ── Main forecast function ────────────────────────────────────────────────────
 // options.longevity — override the default age-90 horizon (e.g. 85, 95)
+//
+// Couples support: when inputs.has_partner = true, the engine accepts partner
+// details and treats the couple as a single combined household pool:
+//   - Combined super balance (both partners)
+//   - Combined SG + contributions during accumulation
+//   - Age Pension assessed on combined assets using couple Centrelink thresholds
+//   - Partner retires at the same time as the primary user (MVP simplification)
 function runForecast(inputs, config, options = {}) {
 
   // ── Inputs ────────────────────────────────────────────────────────────────
   const age             = inputs.current_age;
-  const superBal        = inputs.super_balance;
+  const hasPartner      = !!inputs.has_partner;
   const salary          = inputs.salary || 0;
   const salarySacrifice = inputs.salary_sacrifice || 0; // annual, pre-tax
   const ncc             = inputs.ncc || 0;              // annual, after-tax
   const spending        = inputs.annual_spending;
   const retireAge       = inputs.retirement_age;
   const runs            = 1000;
+
+  // Combine super balances when couple
+  const partnerSuperBal        = hasPartner ? (inputs.partner_super_balance || 0) : 0;
+  const partnerSalary          = hasPartner ? (inputs.partner_salary || 0) : 0;
+  const partnerSalarySacrifice = hasPartner ? (inputs.partner_salary_sacrifice || 0) : 0;
+  const partnerNcc             = hasPartner ? (inputs.partner_ncc || 0) : 0;
+  const superBal               = inputs.super_balance + partnerSuperBal;
 
   // ── Config ────────────────────────────────────────────────────────────────
   const retAcc     = config.return_accumulation / 100;
@@ -136,17 +150,17 @@ function runForecast(inputs, config, options = {}) {
   const dr85_89   = (config.drawdown_85_89   !== undefined ? config.drawdown_85_89   : 9)  / 100;
   const dr90plus  = (config.drawdown_90_plus !== undefined ? config.drawdown_90_plus : 11) / 100;
 
-  // Centrelink config
-  const pensionMax =
-    config.pension_base_single +
-    config.pension_supplement_single +
-    config.pension_energy_single;
-  const assetsLower = config.assets_lower_single_owner;
-  const assetsUpper = config.assets_upper_single_owner;
+  // Centrelink config — use couple thresholds when has_partner, single otherwise
+  // For couples: pensionMax is the COMBINED maximum (both partners × each rate)
+  const pensionMax = hasPartner
+    ? (config.pension_base_couple + config.pension_supplement_couple + config.pension_energy_couple) * 2
+    : config.pension_base_single + config.pension_supplement_single + config.pension_energy_single;
+  const assetsLower = hasPartner ? config.assets_lower_couple_owner : config.assets_lower_single_owner;
+  const assetsUpper = hasPartner ? config.assets_upper_couple_owner : config.assets_upper_single_owner;
   const taper       = config.assets_taper_rate;
-  const incomeFree  = config.income_free_area_single;
+  const incomeFree  = hasPartner ? config.income_free_area_couple : config.income_free_area_single;
   const deemingLow  = config.deeming_rate_lower  / 100;
-  const deemingThr  = config.deeming_threshold_single;
+  const deemingThr  = hasPartner ? config.deeming_threshold_couple : config.deeming_threshold_single;
   const deemingHigh = config.deeming_rate_upper  / 100;
 
   const pensionAge = 67;
@@ -157,18 +171,23 @@ function runForecast(inputs, config, options = {}) {
   const fnPerYear  = 26;
 
   // ── Contributions ─────────────────────────────────────────────────────────
+  // Primary member
   // Concessional (SG + salary sacrifice): taxed at 15% on entry
   const sgFortnightly              = (salary * sgRate) / fnPerYear;
   const salarySacrificeFortnightly = salarySacrifice / fnPerYear;
   const concFortnightlyAfterTax    =
     (sgFortnightly + salarySacrificeFortnightly) * 0.85;
-
-  // Non-concessional (after-tax savings): no tax on entry
   const nccFortnightly = ncc / fnPerYear;
 
-  // Total annual contribution into super after all applicable tax
+  // Partner contributions (combined into same pool when has_partner)
+  const partnerSgFn       = (partnerSalary * sgRate) / fnPerYear;
+  const partnerSsFn       = partnerSalarySacrifice / fnPerYear;
+  const partnerConcFnAft  = (partnerSgFn + partnerSsFn) * 0.85;
+  const partnerNccFn      = partnerNcc / fnPerYear;
+
+  // Total annual contribution into combined super pool after all applicable tax
   const annualContrib =
-    (concFortnightlyAfterTax + nccFortnightly) * fnPerYear;
+    (concFortnightlyAfterTax + nccFortnightly + partnerConcFnAft + partnerNccFn) * fnPerYear;
 
   // ── Seeded PRNG — seed 42 for reproducible results ────────────────────────
   const rand = mulberry32(42);
